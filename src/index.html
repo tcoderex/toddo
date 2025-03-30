@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ToDo App</title>
+    <script type="module" src="/main.js" defer></script>
+  </head>
+
+  <body>
+    <main class="container">
+      <h1>ToDo App</h1>
+
+      <div class="todo-container">
+        <form id="todo-form">
+          <div class="form-row">
+            <input id="todo-input" placeholder="Add a new task..." />
+            <button type="button" id="add-todo-btn">Add</button>
+          </div>
+          <div class="form-row">
+            <input type="date" id="todo-due-date" placeholder="Due date (optional)" />
+            <select id="category-select" class="category-select" aria-label="Select category"></select>
+          </div>
+        </form>
+
+        <div class="todo-filters">
+          <button type="button" id="filter-all" class="filter-btn active">All</button>
+          <button type="button" id="filter-active" class="filter-btn">Active</button>
+          <button type="button" id="filter-completed" class="filter-btn">Completed</button>
+          <button type="button" id="view-trash" class="filter-btn trash-btn">Trash</button>
+        </div>
+
+        <!-- View Controls Bar -->
+        <div class="view-controls-bar">
+          <div class="control-group">
+            <span class="control-label">Group:</span>
+            <label class="switch">
+              <input type="checkbox" id="group-by-category-toggle" aria-label="Group by category">
+              <span class="slider round"></span>
+            </label>
+          </div>
+          <div class="control-group">
+            <span class="control-label">Sort By:</span>
+            <button type="button" class="control-btn sort-by-btn" data-sort="position">Position</button>
+            <button type="button" class="control-btn sort-by-btn" data-sort="name">Name</button>
+            <button type="button" class="control-btn sort-by-btn" data-sort="date">Date Added</button>
+          </div>
+           <div class="control-group">
+             <span class="control-label">Direction:</span>
+            <button type="button" class="control-btn sort-direction-btn" data-direction="asc">▲ Asc</button>
+            <button type="button" class="control-btn sort-direction-btn" data-direction="desc">▼ Desc</button>
+          </div>
+        </div>
+
+        <ul id="todo-list"></ul>
+
+        <!-- Trash container (hidden by default) -->
+        <div id="trash-container" class="trash-container" style="display: none;">
+          <h2>Trash</h2>
+          <ul id="trash-list"></ul>
+          <div class="trash-actions">
+            <button type="button" id="empty-trash">Empty Trash</button>
+            <button type="button" id="close-trash">Close Trash</button>
+          </div>
+        </div>
+
+        <div class="todo-stats">
+          <span id="items-left">0 items left</span>
+          <button type="button" id="clear-completed">Clear completed</button>
+        </div>
+
+        <!-- Category Modal -->
+        <div id="category-modal" class="modal">
+          <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Add New Category</h2>
+            <div class="form-group">
+              <label for="category-name">Category Name:</label>
+              <input type="text" id="category-name" placeholder="Enter category name" />
+            </div>
+            <div class="form-group">
+              <label for="category-color">Category Color:</label>
+              <input type="color" id="category-color" value="#55aaff" />
+            </div>
+            <button type="button" id="save-category-btn">Save Category</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
