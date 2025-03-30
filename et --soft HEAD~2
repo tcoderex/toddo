@@ -1,0 +1,11 @@
+[33mcommit ee181a002598e5c5d1a3085256fc42c3fa506ae2[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m)[m
+Author: tcoderex <tcoderex@gmail.com>
+Date:   Sun Mar 30 22:04:51 2025 +0100
+
+    Remove target directory from git
+
+[33mcommit b93752cceb41ba8ca0cfeb3c2f816a02521676c9[m
+Author: tcoderex <tcoderex@gmail.com>
+Date:   Sun Mar 30 21:57:48 2025 +0100
+
+    Initial commit
