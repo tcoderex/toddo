@@ -93,7 +93,7 @@ let viewTrashBtn; // Added for trash window logic
 let floatingControls;
 let originalControlsBar;
 let lastScrollPosition = 0;
-const SCROLL_THRESHOLD = 100; // Adjust this value as needed
+const SCROLL_THRESHOLD = 120; // Slightly increased threshold for showing floating controls
 
 // Load todos from storage
 async function loadTodos() {
@@ -1995,12 +1995,43 @@ function deleteCategory(categoryId) {
   renderTodos();
 }
 
+function deleteAllCategories() {
+  if (!confirm('Are you sure you want to delete ALL categories? This action cannot be undone and all todos will become uncategorized.')) {
+    return;
+  }
+
+  // Double-check with the user
+  if (!confirm('This will permanently delete all categories. Are you absolutely sure?')) {
+    return;
+  }
+
+  // Update all todos to remove category references
+  todos.forEach(todo => {
+    todo.category = null;
+  });
+
+  // Clear the categories array
+  categories = [];
+
+  // Save changes
+  saveCategories();
+  saveTodos();
+  renderCategoryList();
+  renderTodos();
+
+  // Show confirmation
+  alert('All categories have been deleted.');
+}
+
 // Add event listeners
 document.getElementById('manage-categories-btn').addEventListener('click', openCategoryManagement);
 
 document.querySelector('#category-management-modal .close').addEventListener('click', () => {
   document.getElementById('category-management-modal').style.display = 'none';
 });
+
+// Add event listener for delete all categories button
+document.getElementById('delete-all-categories-btn').addEventListener('click', deleteAllCategories);
 
 document.getElementById('add-category-btn').addEventListener('click', () => {
   const modal = document.getElementById('category-modal');

@@ -77,11 +77,21 @@ h1 {
 /* Filter Buttons Area */
 .todo-filters {
   display: flex;
-  gap: 5px; /* Space between filter buttons */
+  justify-content: space-between;
   margin-bottom: 15px;
   padding-bottom: 15px;
   border-bottom: 1px solid #eee;
   align-items: center; /* Align items vertically */
+}
+
+.filter-group {
+  display: flex;
+  gap: 5px; /* Space between filter buttons */
+}
+
+.action-group {
+  display: flex;
+  gap: 10px; /* Space between action buttons */
 }
 
 .filter-btn {
@@ -113,7 +123,6 @@ h1 {
 }
 
 .filter-btn.trash-btn {
-  margin-left: auto; /* Push trash button to the right */
   border-color: #ffcdd2; /* Light red border */
   color: #d32f2f; /* Darker red text */
 }
@@ -1235,14 +1244,14 @@ ul.drag-over-active {
 /* Floating sort controls */
 .floating-sort-controls {
     position: fixed;
-    top: 20px;
+    top: 20px; /* Position at top */
     right: 20px;
     background-color: rgba(255, 255, 255, 0.98);
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     border-radius: 50%;
     width: 40px;
     height: 40px;
-    display: none;
+    display: none; /* Hidden by default */
     justify-content: center;
     align-items: center;
     cursor: pointer;
@@ -1261,7 +1270,7 @@ ul.drag-over-active {
 .floating-sort-controls .sort-icon {
     font-size: 20px;
     color: #5c67f2;
-    animation: glow 2s infinite;
+    animation: glow 3s infinite; /* Slower animation */
 }
 
 .floating-sort-controls:hover .sort-icon {
@@ -1438,10 +1447,20 @@ ul.drag-over-active {
 
 .category-management-actions {
   display: flex;
-  gap: 10px;
+  justify-content: space-between;
   margin-bottom: 15px;
   position: relative;
   z-index: 1005; /* Higher than categories-list */
+}
+
+.add-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.delete-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .action-btn {
@@ -1454,6 +1473,16 @@ ul.drag-over-active {
   font-weight: bold;
   position: relative;
   z-index: 1006; /* Higher than category-management-actions */
+}
+
+.action-btn.delete-btn {
+  background-color: #f44336; /* Google red */
+  color: white;
+}
+
+.action-btn.delete-btn:hover {
+  background-color: #d32f2f; /* Darker red on hover */
+  opacity: 1;
 }
 
 .action-btn:hover {

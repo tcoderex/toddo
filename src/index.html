@@ -25,10 +25,19 @@
         </form>
 
         <div class="todo-filters">
-          <button type="button" id="filter-all" class="filter-btn active">All</button>
-          <button type="button" id="filter-active" class="filter-btn">Active</button>
-          <button type="button" id="filter-completed" class="filter-btn">Completed</button>
-          <!-- Trash button moved to action-controls-row -->
+          <div class="filter-group">
+            <button type="button" id="filter-all" class="filter-btn active">All</button>
+            <button type="button" id="filter-active" class="filter-btn">Active</button>
+            <button type="button" id="filter-completed" class="filter-btn">Completed</button>
+          </div>
+          <div class="action-group">
+            <button type="button" id="view-trash-btn" class="filter-btn trash-btn">
+              🗑️ Trash
+            </button>
+            <button type="button" id="manage-categories-btn" class="filter-btn">
+              🗂️ Manage Categories
+            </button>
+          </div>
         </div>
 
         <!-- View Controls Bar -->
@@ -60,15 +69,7 @@
             </div>
           </div>
 
-          <!-- Second row: Trash and Manage Categories -->
-          <div class="controls-row action-controls-row">
-            <button type="button" id="view-trash-btn" class="control-btn trash-control-btn">
-              🗑️ Trash
-            </button>
-            <button type="button" id="manage-categories-btn" class="control-btn">
-              🗂️ Manage Categories
-            </button>
-          </div>
+          <!-- Trash and Manage Categories buttons moved to filter row -->
         </div>
 
         <ul id="todo-list"></ul>
@@ -107,12 +108,19 @@
             <span class="close">&times;</span>
             <h2>Manage Categories</h2>
             <div class="category-management-actions">
-              <button type="button" id="add-category-btn" class="action-btn">
-                + Add Category
-              </button>
-              <button type="button" id="add-subcategory-btn" class="action-btn">
-                + Add Subcategory
-              </button>
+              <div class="add-actions">
+                <button type="button" id="add-category-btn" class="action-btn">
+                  + Add Category
+                </button>
+                <button type="button" id="add-subcategory-btn" class="action-btn">
+                  + Add Subcategory
+                </button>
+              </div>
+              <div class="delete-actions">
+                <button type="button" id="delete-all-categories-btn" class="action-btn delete-btn">
+                  🗑️ Delete All Categories
+                </button>
+              </div>
             </div>
             <div class="categories-list">
               <!-- Categories will be rendered here -->
