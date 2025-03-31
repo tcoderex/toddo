@@ -617,6 +617,15 @@ function editTodo(id) {
   const li = document.querySelector(`#todo-list li[data-id="${id}"]`); // More specific selector
   if (!li) return;
 
+  // Check if this todo is already being edited
+  const existingForm = li.querySelector('.todo-edit-form');
+  if (existingForm) {
+    // Already in edit mode, focus on the input field instead
+    const input = existingForm.querySelector('.todo-edit-input');
+    if (input) input.focus();
+    return;
+  }
+
   const textContainer = li.querySelector('.todo-text-container');
   const originalContent = textContainer.innerHTML; // Save original content
   textContainer.innerHTML = ''; // Clear for edit form
@@ -675,8 +684,12 @@ function editTodo(id) {
   cancelBtn.textContent = 'Cancel';
   cancelBtn.addEventListener('click', () => {
       textContainer.innerHTML = originalContent; // Restore original content
-      // Re-attach dblclick listener if needed (might be complex)
-      // For simplicity, we rely on the next render to fix listeners
+
+      // Re-attach the double-click event listener to the span
+      const span = textContainer.querySelector('.todo-text');
+      if (span) {
+          span.addEventListener('dblclick', () => editTodo(todo.id));
+      }
   });
 
 
