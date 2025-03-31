@@ -121,32 +121,11 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     // Add event listeners for selection buttons
     if (selectAllBtn) {
-        selectAllBtn.addEventListener('click', () => {
-            // Select all items
-            const checkboxes = document.querySelectorAll('.trash-checkbox');
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = true;
-                const itemId = checkbox.dataset.id;
-                if (itemId) {
-                    selectedItems.add(itemId);
-                    checkbox.closest('.trash-item')?.classList.add('selected');
-                }
-            });
-            updateSelectionUI();
-        });
+        selectAllBtn.addEventListener('click', selectAll);
     }
 
     if (deselectAllBtn) {
-        deselectAllBtn.addEventListener('click', () => {
-            // Deselect all items
-            const checkboxes = document.querySelectorAll('.trash-checkbox');
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = false;
-                checkbox.closest('.trash-item')?.classList.remove('selected');
-            });
-            selectedItems.clear();
-            updateSelectionUI();
-        });
+        deselectAllBtn.addEventListener('click', deselectAll);
     }
 
     if (deleteSelectedBtn) {
@@ -348,6 +327,39 @@ function updateSelectionUI() {
     if (deselectAllBtn) {
         deselectAllBtn.disabled = count === 0;
     }
+
+    // Update select all button state
+    if (selectAllBtn) {
+        const allCheckboxes = document.querySelectorAll('.trash-checkbox');
+        const allSelected = allCheckboxes.length > 0 && 
+                          Array.from(allCheckboxes).every(cb => cb.checked);
+        selectAllBtn.disabled = allCheckboxes.length === 0;
+        selectAllBtn.classList.toggle('all-selected', allSelected);
+    }
+}
+
+// Add these helper functions for selection handling
+function selectAll() {
+    const checkboxes = document.querySelectorAll('.trash-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = true;
+        const itemId = checkbox.dataset.id;
+        if (itemId) {
+            selectedItems.add(itemId);
+            checkbox.closest('.trash-item')?.classList.add('selected');
+        }
+    });
+    updateSelectionUI();
+}
+
+function deselectAll() {
+    const checkboxes = document.querySelectorAll('.trash-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+        checkbox.closest('.trash-item')?.classList.remove('selected');
+    });
+    selectedItems.clear();
+    updateSelectionUI();
 }
 
 // Handle deleting selected items
@@ -361,19 +373,38 @@ async function handleDeleteSelected() {
 
     if (confirm(confirmMessage)) {
         try {
-            // Delete each selected item
-            const promises = Array.from(selectedItems).map(id => {
-                return invoke('delete_todo_item_permanently', { id: parseInt(id) });
-            });
+            let successCount = 0;
+            const errors = [];
 
-            await Promise.all(promises);
-            console.log(`Deleted ${count} items`);
+            // Delete each selected item one by one
+            for (const id of selectedItems) {
+                try {
+                    await invoke('delete_todo_item_permanently', { id: parseInt(id) });
+                    successCount++;
+                } catch (error) {
+                    errors.push(`Failed to delete item ${id}: ${error.message || 'Unknown error'}`);
+                }
+            }
 
-            // Clear selection and reload
+            // Update the local trashedTodos array to remove successfully deleted items
+            trashedTodos = trashedTodos.filter(todo => !selectedItems.has(todo.id.toString()));
+
+            // Clear the selection set
             selectedItems.clear();
-            await loadAndRenderTrash();
+
+            // Re-render the list
+            renderTrashList();
+
+            // Show results to user
+            if (successCount > 0) {
+                console.log(`Successfully deleted ${successCount} items`);
+            }
+            if (errors.length > 0) {
+                console.error('Errors during deletion:', errors);
+                alert(`Deleted ${successCount} items, but encountered ${errors.length} errors.\n${errors.join('\n')}`);
+            }
         } catch (error) {
-            console.error('Error deleting selected items:', error);
+            console.error('Error in handleDeleteSelected:', error);
             alert('An error occurred while deleting the selected items.');
         }
     }
@@ -434,11 +465,14 @@ async function handleDelete(id) {
     console.log(`Trash Window: Deleting item ${id}`);
     if (confirm(`Are you sure you want to permanently delete this item?`)) {
         try {
-            // This command needs to be implemented in Rust.
-            // It should find the item in trash.json, remove it, and save the file.
-            await invoke('delete_todo_item_permanently', { id: id });
-            // Refresh the trash list in this window
-            await loadAndRenderTrash();
+            // Call the Rust backend to delete the item
+            await invoke('delete_todo_item_permanently', { id: parseInt(id) });
+            
+            // Remove the item from the local trashedTodos array
+            trashedTodos = trashedTodos.filter(todo => todo.id !== id);
+            
+            // Re-render the list
+            renderTrashList();
         } catch (error) {
             console.error(`Trash Window: Error deleting item ${id}:`, error);
             alert(`Error deleting item: ${error.message || 'Unknown error'}`);
@@ -451,11 +485,14 @@ async function handleEmptyTrash() {
     console.log('Trash Window: Emptying trash');
     if (confirm('Are you sure you want to permanently delete all items in the trash?')) {
         try {
-            // This command needs to be implemented in Rust.
-            // It should clear the trash.json file.
+            // Call the Rust backend to empty the trash
             await invoke('empty_trash_bin');
-            // Refresh the trash list in this window
-            await loadAndRenderTrash();
+            
+            // Clear the local trashedTodos array
+            trashedTodos = [];
+            
+            // Re-render the list
+            renderTrashList();
         } catch (error) {
             console.error('Trash Window: Error emptying trash:', error);
             alert(`Error emptying trash: ${error.message || 'Unknown error'}`);
