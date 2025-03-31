@@ -34,6 +34,15 @@ if (isTauri) {
         console.warn('WebviewWindow constructor not found');
       }
     }
+
+    // Set up event listener for todos-updated event from trash window
+    if (window.__TAURI__.event && typeof window.__TAURI__.event.listen === 'function') {
+      window.__TAURI__.event.listen('todos-updated', () => {
+        console.log('Received todos-updated event from Tauri');
+        loadTodos();
+      });
+      console.log('Registered Tauri event listener for todos-updated');
+    }
   } catch (e) {
     console.error('Error initializing Tauri APIs:', e);
   }
@@ -1578,6 +1587,54 @@ window.addEventListener('DOMContentLoaded', async () => {
       if (event.data.event === 'todos-updated') {
         console.log('Reloading todos after trash window update');
         loadTodos();
+        // Also reload trash data
+        loadTrash();
+      }
+
+      // Handle restored item from trash window (for non-Tauri environment)
+      if (event.data.action === 'restoreItem' && event.data.item) {
+        console.log('Restoring item from trash window:', event.data.item);
+        const restoredItem = event.data.item;
+
+        // Remove the trashedAt property
+        delete restoredItem.trashedAt;
+
+        // Add the item back to todos
+        todos.push(restoredItem);
+
+        // Save todos
+        saveTodos();
+
+        // Re-render todos
+        renderTodos();
+
+        // Remove from trashedTodos
+        trashedTodos = trashedTodos.filter(todo => todo.id !== restoredItem.id);
+        saveTrash();
+      }
+
+      // Handle multiple restored items from trash window (for non-Tauri environment)
+      if (event.data.action === 'restoreMultipleItems' && Array.isArray(event.data.items) && event.data.items.length > 0) {
+        console.log('Restoring multiple items from trash window:', event.data.items);
+
+        // Process each restored item
+        event.data.items.forEach(item => {
+          // Remove the trashedAt property
+          delete item.trashedAt;
+
+          // Add the item back to todos
+          todos.push(item);
+
+          // Remove from trashedTodos
+          trashedTodos = trashedTodos.filter(todo => todo.id !== item.id);
+        });
+
+        // Save todos and trash
+        saveTodos();
+        saveTrash();
+
+        // Re-render todos
+        renderTodos();
       }
 
       // If the trash window is requesting trash data

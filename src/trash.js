@@ -12,7 +12,25 @@ if (isTauri) {
         invoke = window.__TAURI__.core.invoke;
         const windowAPI = window.__TAURI__.window;
         getCurrent = windowAPI.getCurrent;
-        emit = windowAPI.emit;
+
+        // Set up emit function - try to use event.emit if available, otherwise fall back to window.emit
+        if (window.__TAURI__.event && typeof window.__TAURI__.event.emit === 'function') {
+            emit = window.__TAURI__.event.emit;
+            console.log('Using Tauri event.emit for communication');
+        } else if (windowAPI.emit) {
+            emit = windowAPI.emit;
+            console.log('Using Tauri window.emit for communication');
+        } else {
+            console.warn('No Tauri emit function found, using fallback');
+            emit = (event) => {
+                console.warn(`Fallback emit called: ${event}`);
+                // Try to communicate with opener window if available
+                if (window.opener && !window.opener.closed) {
+                    window.opener.postMessage({ event, source: 'trash-window' }, '*');
+                }
+            };
+        }
+
         console.log('Tauri APIs initialized successfully');
     } catch (error) {
         console.error('Error initializing Tauri APIs:', error);
@@ -25,13 +43,55 @@ if (isTauri) {
 
 // Set up mock implementations for non-Tauri environments
 function setupMockApis() {
-    // Mock invoke function
+    // Mock invoke function with more realistic behavior
     invoke = async (command, args) => {
         console.warn(`Mock invoke called: ${command}`, args);
-        if (command === 'get_trash_data') return [];
-        if (command === 'restore_todo_item') return true;
-        if (command === 'delete_todo_item_permanently') return true;
-        if (command === 'empty_trash_bin') return true;
+
+        if (command === 'get_trash_data') {
+            // Return the current trashedTodos if available, otherwise empty array
+            return trashedTodos.length > 0 ? trashedTodos : [];
+        }
+
+        if (command === 'restore_todo_item') {
+            // Simulate restoring an item by removing it from trashedTodos
+            const id = args.id;
+            console.log(`Mock restoring item ${id}`);
+
+            // Find the item in trashedTodos
+            const itemIndex = trashedTodos.findIndex(todo => todo.id === id);
+            if (itemIndex !== -1) {
+                // Remove the item from trashedTodos
+                const [restoredItem] = trashedTodos.splice(itemIndex, 1);
+                console.log(`Mock restored item:`, restoredItem);
+
+                // Notify the main window about the restored item
+                if (window.opener && !window.opener.closed) {
+                    window.opener.postMessage({
+                        action: 'restoreItem',
+                        item: restoredItem,
+                        source: 'trash-window'
+                    }, '*');
+                }
+            }
+            return true;
+        }
+
+        if (command === 'delete_todo_item_permanently') {
+            // Simulate deleting an item by removing it from trashedTodos
+            const id = args.id;
+            const itemIndex = trashedTodos.findIndex(todo => todo.id === id);
+            if (itemIndex !== -1) {
+                trashedTodos.splice(itemIndex, 1);
+            }
+            return true;
+        }
+
+        if (command === 'empty_trash_bin') {
+            // Clear all items
+            trashedTodos = [];
+            return true;
+        }
+
         return null;
     };
 
@@ -41,11 +101,11 @@ function setupMockApis() {
     });
 
     // Mock emit function
-    emit = (event) => {
-        console.warn(`Mock emit called: ${event}`);
+    emit = (event, payload) => {
+        console.warn(`Mock emit called: ${event}`, payload);
         // Try to communicate with opener window if available
         if (window.opener && !window.opener.closed) {
-            window.opener.postMessage({ event, source: 'trash-window' }, '*');
+            window.opener.postMessage({ event, payload, source: 'trash-window' }, '*');
         }
     };
 }
@@ -331,7 +391,7 @@ function updateSelectionUI() {
     // Update select all button state
     if (selectAllBtn) {
         const allCheckboxes = document.querySelectorAll('.trash-checkbox');
-        const allSelected = allCheckboxes.length > 0 && 
+        const allSelected = allCheckboxes.length > 0 &&
                           Array.from(allCheckboxes).every(cb => cb.checked);
         selectAllBtn.disabled = allCheckboxes.length === 0;
         selectAllBtn.classList.toggle('all-selected', allSelected);
@@ -416,24 +476,65 @@ async function handleRestoreSelected() {
     if (count === 0) return;
 
     try {
-        // Restore each selected item
-        const promises = Array.from(selectedItems).map(id => {
-            return invoke('restore_todo_item', { id: parseInt(id) });
-        });
+        console.log(`Attempting to restore ${count} selected items:`, Array.from(selectedItems));
 
-        await Promise.all(promises);
-        console.log(`Restored ${count} items`);
+        // Restore each selected item one by one and track results
+        let successCount = 0;
+        const errors = [];
+        const restoredItems = [];
+
+        for (const id of selectedItems) {
+            try {
+                console.log(`Restoring item ${id}...`);
+
+                // Find the item in trashedTodos before it's removed by the invoke call
+                const itemToRestore = trashedTodos.find(todo => todo.id.toString() === id);
+                if (itemToRestore) {
+                    restoredItems.push({...itemToRestore}); // Save a copy for non-Tauri environments
+                }
+
+                // Call the backend to restore the item
+                await invoke('restore_todo_item', { id: parseInt(id) });
+                successCount++;
+            } catch (error) {
+                console.error(`Failed to restore item ${id}:`, error);
+                errors.push(`Failed to restore item ${id}: ${error.message || 'Unknown error'}`);
+            }
+        }
+
+        // Update the local trashedTodos array to remove successfully restored items
+        trashedTodos = trashedTodos.filter(todo => !selectedItems.has(todo.id.toString()));
+
+        // For non-Tauri environments, send all restored items to the main window
+        if (!isTauri && window.opener && !window.opener.closed && restoredItems.length > 0) {
+            window.opener.postMessage({
+                action: 'restoreMultipleItems',
+                items: restoredItems,
+                source: 'trash-window'
+            }, '*');
+        }
 
         // Notify the main window that todos have changed
         if (typeof emit === 'function') {
             await emit('todos-updated');
         }
 
-        // Clear selection and reload
+        // Clear the selection set
         selectedItems.clear();
-        await loadAndRenderTrash();
+
+        // Re-render the list
+        renderTrashList();
+
+        // Show results to user
+        if (successCount > 0) {
+            console.log(`Successfully restored ${successCount} items`);
+        }
+        if (errors.length > 0) {
+            console.error('Errors during restoration:', errors);
+            alert(`Restored ${successCount} items, but encountered ${errors.length} errors.\n${errors.join('\n')}`);
+        }
     } catch (error) {
-        console.error('Error restoring selected items:', error);
+        console.error('Error in handleRestoreSelected:', error);
         alert('An error occurred while restoring the selected items.');
     }
 }
@@ -442,18 +543,33 @@ async function handleRestoreSelected() {
 async function handleRestore(id) {
     console.log(`Trash Window: Restoring item ${id}`);
     try {
-        // This command needs to be implemented in Rust.
-        // It should find the item in trash.json, remove it,
-        // add it back to todos.json, and save both files.
+        // Find the item in trashedTodos before it's removed by the invoke call
+        const itemToRestore = trashedTodos.find(todo => todo.id === id);
+
+        // Call the Rust backend to restore the item
         await invoke('restore_todo_item', { id: id });
+
+        // Remove the item from the local trashedTodos array
+        trashedTodos = trashedTodos.filter(todo => todo.id !== id);
+
+        // For non-Tauri environments, send the restored item to the main window
+        if (!isTauri && window.opener && !window.opener.closed && itemToRestore) {
+            window.opener.postMessage({
+                action: 'restoreItem',
+                item: {...itemToRestore}, // Send a copy
+                source: 'trash-window'
+            }, '*');
+        }
 
         // Notify the main window that todos have changed
         if (typeof emit === 'function') {
             await emit('todos-updated');
         }
 
-        // Refresh the trash list in this window
-        await loadAndRenderTrash();
+        // Re-render the list
+        renderTrashList();
+
+        console.log(`Successfully restored item ${id}`);
     } catch (error) {
         console.error(`Trash Window: Error restoring item ${id}:`, error);
         alert(`Error restoring item: ${error.message || 'Unknown error'}`);
@@ -467,10 +583,10 @@ async function handleDelete(id) {
         try {
             // Call the Rust backend to delete the item
             await invoke('delete_todo_item_permanently', { id: parseInt(id) });
-            
+
             // Remove the item from the local trashedTodos array
             trashedTodos = trashedTodos.filter(todo => todo.id !== id);
-            
+
             // Re-render the list
             renderTrashList();
         } catch (error) {
@@ -487,10 +603,10 @@ async function handleEmptyTrash() {
         try {
             // Call the Rust backend to empty the trash
             await invoke('empty_trash_bin');
-            
+
             // Clear the local trashedTodos array
             trashedTodos = [];
-            
+
             // Re-render the list
             renderTrashList();
         } catch (error) {
