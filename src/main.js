@@ -1390,7 +1390,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   sortTargetButtons = document.querySelectorAll('.sort-target-btn');
   sortByButtons = document.querySelectorAll('.sort-by-btn');
   sortDirectionButtons = document.querySelectorAll('.sort-direction-btn');
-  viewTrashBtn = document.querySelector('#view-trash'); // Get trash button
+  viewTrashBtn = document.querySelector('#view-trash-btn'); // Get trash button
 
   // Set initial UI states
   if (groupByToggle) groupByToggle.checked = isGroupedByCategory;
@@ -1499,7 +1499,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  const closeBtn = document.querySelector('.modal .close'); // More specific selector
+  const closeBtn = document.querySelector('#category-modal .close'); // More specific selector
   closeBtn.addEventListener('click', () => {
     const modal = document.getElementById('category-modal');
     modal.style.display = 'none';
@@ -1507,11 +1507,15 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (modal.dataset.editFormId) {
         const form = document.querySelector(`.todo-item[data-id="${modal.dataset.editFormId}"] .todo-edit-form`);
         if (form) form.style.display = ''; // Show form again
-        // Clear edit data
-        delete modal.dataset.editFormId;
-        delete modal.dataset.editText;
-        delete modal.dataset.editDueDate;
     }
+
+    // Clear all modal data attributes
+    delete modal.dataset.editFormId;
+    delete modal.dataset.editText;
+    delete modal.dataset.editDueDate;
+    delete modal.dataset.editCategoryId;
+    delete modal.dataset.isSubcategory;
+
     categorySelect.value = ''; // Reset main category select
   });
 
@@ -1521,6 +1525,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     const categoryColor = document.getElementById('category-color').value;
     const modal = document.getElementById('category-modal');
     const isSubcategory = modal.dataset.isSubcategory === 'true';
+    const isEditing = modal.dataset.editCategoryId !== undefined;
 
     if (categoryName.trim() === '') {
       alert('Please enter a category name'); return;
@@ -1535,29 +1540,55 @@ window.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
-    const newCategory = addCategory(categoryName, categoryColor, parentId);
+    // Handle editing existing category
+    if (isEditing) {
+      const categoryId = parseInt(modal.dataset.editCategoryId);
+      const categoryIndex = categories.findIndex(c => c.id === categoryId);
+
+      if (categoryIndex !== -1) {
+        // Update the category
+        categories[categoryIndex].name = categoryName;
+        categories[categoryIndex].color = categoryColor;
+        categories[categoryIndex].parent_id = parentId;
+
+        // Save and update UI
+        saveCategories();
+        renderCategoryDropdown();
+        renderCategoryList();
+        renderTodos(); // Re-render todos to update category colors
+      }
+    } else {
+      // Add new category
+      const newCategory = addCategory(categoryName, categoryColor, parentId);
+
+      // Check if we were editing a todo when opening the modal
+      if (modal.dataset.editFormId) {
+        const todoId = parseInt(modal.dataset.editFormId);
+        const text = modal.dataset.editText;
+        const dueDate = modal.dataset.editDueDate || null;
+        updateTodo(todoId, text, dueDate, newCategory.id.toString()); // Update with new category ID
+      }
+    }
+
+    // Close modal and clean up
     modal.style.display = 'none';
     document.getElementById('category-name').value = ''; // Reset modal form
 
-    // Check if we were editing a todo when opening the modal
-    if (modal.dataset.editFormId) {
-      const todoId = parseInt(modal.dataset.editFormId);
-      const text = modal.dataset.editText;
-      const dueDate = modal.dataset.editDueDate || null;
-      updateTodo(todoId, text, dueDate, newCategory.id.toString()); // Update with new category ID
-      // Clear edit data
-      delete modal.dataset.editFormId;
-      delete modal.dataset.editText;
-      delete modal.dataset.editDueDate;
-    }
-    // Check if we were adding a new todo
-    else if (todoForm.dataset.pendingText) {
+    // Clear edit data
+    delete modal.dataset.editFormId;
+    delete modal.dataset.editText;
+    delete modal.dataset.editDueDate;
+    delete modal.dataset.editCategoryId;
+    delete modal.dataset.isSubcategory;
+
+    // Check if we were adding a new todo and we have a new category (not editing)
+    if (!isEditing && todoForm.dataset.pendingText) {
       const text = todoForm.dataset.pendingText;
       const dueDate = todoForm.dataset.pendingDueDate || null;
       addTodo(text, dueDate, newCategory.id.toString());
       delete todoForm.dataset.pendingText;
       delete todoForm.dataset.pendingDueDate;
-    } else {
+    } else if (!isEditing) {
       categorySelect.value = newCategory.id.toString(); // Select new category in main form
     }
   });
@@ -1886,16 +1917,61 @@ function editCategory(category) {
   document.getElementById('category-modal-title').textContent = 'Edit Category';
   document.getElementById('category-name').value = category.name;
   document.getElementById('category-color').value = category.color;
-  
-  if (category.parent_id) {
-    document.getElementById('parent-category-group').style.display = 'block';
+
+  // Determine if this is a subcategory
+  const isSubcategory = category.parent_id !== null && category.parent_id !== undefined;
+
+  // Show or hide parent category dropdown
+  const parentCategoryGroup = document.getElementById('parent-category-group');
+  parentCategoryGroup.style.display = isSubcategory ? 'block' : 'none';
+
+  // If it's a subcategory, populate the parent dropdown
+  if (isSubcategory) {
+    populateParentCategoryDropdown(category.id);
     document.getElementById('parent-category-select').value = category.parent_id;
-  } else {
-    document.getElementById('parent-category-group').style.display = 'none';
   }
 
+  // Set data attributes for the modal
   modal.dataset.editCategoryId = category.id;
+  modal.dataset.isSubcategory = isSubcategory ? 'true' : 'false';
   modal.style.display = 'block';
+}
+
+// Helper function to populate the parent category dropdown
+function populateParentCategoryDropdown(excludeCategoryId = null) {
+  const parentSelect = document.getElementById('parent-category-select');
+  parentSelect.innerHTML = '';
+
+  // Add a default option
+  const defaultOption = document.createElement('option');
+  defaultOption.value = '';
+  defaultOption.textContent = 'Select a parent category';
+  parentSelect.appendChild(defaultOption);
+
+  // Add all categories as potential parents, excluding the current category being edited
+  categories.forEach(category => {
+    // Skip the current category and its subcategories to prevent circular references
+    if (excludeCategoryId !== null) {
+      // Skip the category itself
+      if (category.id === excludeCategoryId) return;
+
+      // Skip any subcategories of this category
+      const isSubcategoryOf = (parentId, targetId) => {
+        if (parentId === targetId) return true;
+        const parent = categories.find(c => c.id === parentId);
+        return parent && parent.parent_id ? isSubcategoryOf(parent.parent_id, targetId) : false;
+      };
+
+      // Skip if this category is a subcategory of the one being edited
+      if (category.parent_id && isSubcategoryOf(category.parent_id, excludeCategoryId)) return;
+    }
+
+    const option = document.createElement('option');
+    option.value = category.id;
+    option.textContent = category.name;
+    option.style.color = category.color;
+    parentSelect.appendChild(option);
+  });
 }
 
 function deleteCategory(categoryId) {
@@ -1912,7 +1988,7 @@ function deleteCategory(categoryId) {
 
   // Remove the category and its subcategories
   categories = categories.filter(c => c.id !== categoryId && c.parent_id !== categoryId);
-  
+
   saveCategories();
   saveTodos();
   renderCategoryList();
@@ -1933,6 +2009,7 @@ document.getElementById('add-category-btn').addEventListener('click', () => {
   document.getElementById('category-name').value = '';
   document.getElementById('category-color').value = getRandomColor();
   delete modal.dataset.editCategoryId;
+  modal.dataset.isSubcategory = 'false';
   modal.style.display = 'block';
 });
 
@@ -1943,5 +2020,10 @@ document.getElementById('add-subcategory-btn').addEventListener('click', () => {
   document.getElementById('category-name').value = '';
   document.getElementById('category-color').value = getRandomColor();
   delete modal.dataset.editCategoryId;
+  modal.dataset.isSubcategory = 'true';
+
+  // Populate parent category dropdown
+  populateParentCategoryDropdown();
+
   modal.style.display = 'block';
 });

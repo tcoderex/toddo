@@ -28,39 +28,46 @@
           <button type="button" id="filter-all" class="filter-btn active">All</button>
           <button type="button" id="filter-active" class="filter-btn">Active</button>
           <button type="button" id="filter-completed" class="filter-btn">Completed</button>
-          <button type="button" id="view-trash" class="filter-btn trash-btn">🗑️ Trash</button>
+          <!-- Trash button moved to action-controls-row -->
         </div>
 
         <!-- View Controls Bar -->
         <div class="view-controls-bar">
-          <div class="control-group group-toggle-group">
-            <span class="control-label">Group:</span>
-            <label class="switch">
-              <input type="checkbox" id="group-by-category-toggle" aria-label="Group by category">
-              <span class="slider round"></span>
-            </label>
+          <!-- First row: Sort controls -->
+          <div class="controls-row sort-controls-row">
+            <div class="control-group group-toggle-group">
+              <span class="control-label">Group:</span>
+              <label class="switch">
+                <input type="checkbox" id="group-by-category-toggle" aria-label="Group by category">
+                <span class="slider round"></span>
+              </label>
+            </div>
+            <div class="control-group sort-target-group">
+              <span class="control-label">Sort:</span>
+              <button type="button" class="control-btn sort-target-btn active" data-target="tasks">Tasks</button>
+              <button type="button" class="control-btn sort-target-btn" data-target="categories">Categories</button>
+            </div>
+            <div class="sort-controls-wrapper">
+              <div class="control-group sort-by-group">
+                <span class="control-label">By:</span>
+                <button type="button" class="control-btn sort-by-btn" data-sort="name">Name</button>
+                <button type="button" class="control-btn sort-by-btn" data-sort="date">Date Added</button>
+              </div>
+              <div class="control-group sort-direction-group">
+                <button type="button" class="control-btn sort-direction-btn" data-direction="asc">▲</button>
+                <button type="button" class="control-btn sort-direction-btn" data-direction="desc">▼</button>
+              </div>
+            </div>
           </div>
-          <div class="control-group sort-target-group">
-            <span class="control-label">Sort:</span>
-            <button type="button" class="control-btn sort-target-btn active" data-target="tasks">Tasks</button>
-            <button type="button" class="control-btn sort-target-btn" data-target="categories">Categories</button>
-          </div>
-          <!-- Add the manage categories button here -->
-          <div class="control-group manage-categories-group">
+
+          <!-- Second row: Trash and Manage Categories -->
+          <div class="controls-row action-controls-row">
+            <button type="button" id="view-trash-btn" class="control-btn trash-control-btn">
+              🗑️ Trash
+            </button>
             <button type="button" id="manage-categories-btn" class="control-btn">
               🗂️ Manage Categories
             </button>
-          </div>
-          <div class="sort-controls-wrapper">
-            <div class="control-group sort-by-group">
-              <span class="control-label">By:</span>
-              <button type="button" class="control-btn sort-by-btn" data-sort="name">Name</button>
-              <button type="button" class="control-btn sort-by-btn" data-sort="date">Date Added</button>
-            </div>
-            <div class="control-group sort-direction-group">
-              <button type="button" class="control-btn sort-direction-btn" data-direction="asc">▲</button>
-              <button type="button" class="control-btn sort-direction-btn" data-direction="desc">▼</button>
-            </div>
           </div>
         </div>
 
@@ -99,9 +106,6 @@
           <div class="modal-content">
             <span class="close">&times;</span>
             <h2>Manage Categories</h2>
-            <div class="categories-list">
-              <!-- Categories will be rendered here -->
-            </div>
             <div class="category-management-actions">
               <button type="button" id="add-category-btn" class="action-btn">
                 + Add Category
@@ -109,6 +113,9 @@
               <button type="button" id="add-subcategory-btn" class="action-btn">
                 + Add Subcategory
               </button>
+            </div>
+            <div class="categories-list">
+              <!-- Categories will be rendered here -->
             </div>
           </div>
         </div>
