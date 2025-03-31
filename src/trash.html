@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="styles.css" /> <!-- Reuse main styles for consistency -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trash Bin</title>
+    <script type="module" src="/trash.js" defer></script>
+</head>
+<body>
+    <div class="container trash-window-container"> <!-- Add specific class -->
+        <h2>Trash Bin</h2>
+        <ul id="trash-list">
+            <!-- Trashed items will be rendered here by trash.js -->
+        </ul>
+        <div class="trash-actions">
+            <button type="button" id="empty-trash">🗑️ Empty Trash</button>
+            <!-- Close button might be handled by window decoration, but can add one if needed -->
+            <!-- <button type="button" id="close-trash-window">Close</button> -->
+        </div>
+    </div>
+</body>
+</html>

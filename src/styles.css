@@ -1,445 +1,459 @@
-:root {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 400;
-
-  /* Light Theme Defaults */
-  color: #212529; /* Darker text for better contrast */
-  background-color: #ffffff; /* Cleaner white background */
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
+/* General Styles */
+body {
+  font-family: 'Arial', sans-serif;
+  background-color: #f4f4f4;
+  color: #333;
+  margin: 0;
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start; /* Align items to the top */
+  min-height: 100vh;
 }
 
 .container {
-  margin: 0 auto;
-  max-width: 600px;
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  background-color: #fff;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 700px; /* Increased max-width */
+  margin-top: 20px; /* Add some margin at the top */
 }
 
 h1 {
   text-align: center;
-  margin-bottom: 2rem;
-  color: #0d6efd; /* Standard Bootstrap blue */
+  color: #555;
+  margin-bottom: 20px;
 }
 
-.todo-container {
-  width: 100%;
-  background-color: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.075); /* Softer shadow */
-  border: 1px solid #dee2e6; /* Subtle border */
-  padding: 1.5rem;
-}
-
+/* Input Form */
 #todo-form {
-  margin-bottom: 1.5rem;
-}
-
-.form-row {
   display: flex;
-  margin-bottom: 0.5rem;
-}
-
-#todo-input,
-#todo-due-date,
-.category-select {
-  flex: 1;
-  padding: 0.6rem 1rem;
-  border: 1px solid #ced4da; /* Slightly darker border */
-  border-radius: 4px;
-  background-color: #ffffff;
-  color: #212529;
+  flex-wrap: wrap; /* Allow wrapping on smaller screens */
+  gap: 10px; /* Space between elements */
+  margin-bottom: 20px;
+  align-items: center; /* Align items vertically */
 }
 
 #todo-input {
-  margin-right: 0.5rem;
-}
-
-#todo-due-date {
-  margin-right: 0.5rem;
-}
-
-.category-select {
-  margin-right: 0;
-  cursor: pointer;
-  /* Appearance for dropdown arrow */
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  background-size: 16px 12px;
-}
-
-.category-select option {
-  padding: 0.5rem;
-}
-
-.category-select option:last-child {
-  font-weight: bold;
-  border-top: 1px solid #ddd;
-  padding-top: 0.5rem;
-}
-
-button,
-.button { /* Added class for consistency if needed */
-  cursor: pointer;
+  flex-grow: 1; /* Take available space */
+  padding: 12px 15px;
+  border: 1px solid #ddd;
   border-radius: 4px;
-  border: 1px solid transparent;
-  padding: 0.6rem 1rem;
-  font-weight: 500;
-  background-color: #0d6efd; /* Standard Bootstrap blue */
+  font-size: 16px;
+  min-width: 200px; /* Minimum width before wrapping */
+}
+
+#todo-due-date,
+#category-select {
+  padding: 12px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: #fff; /* Ensure background */
+  color: #555;
+}
+
+#category-select {
+    min-width: 180px; /* Give category select enough space */
+}
+
+#add-todo-btn {
+  padding: 12px 20px;
+  background-color: #5c67f2;
   color: white;
-  transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
 }
 
-button:hover,
-.button:hover {
-  background-color: #0b5ed7;
-  border-color: #0a58ca;
+#add-todo-btn:hover {
+  background-color: #4a54cc;
 }
 
-button:active,
-.button:active {
-  background-color: #0a58ca;
-  border-color: #0a53be;
-}
-
+/* Filter Buttons Area */
 .todo-filters {
   display: flex;
-  justify-content: center;
-  margin-bottom: 1rem;
-  gap: 0.5rem;
+  gap: 5px; /* Space between filter buttons */
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+  align-items: center; /* Align items vertically */
 }
 
 .filter-btn {
-  background-color: transparent;
-  color: #6c757d; /* Gray text */
-  border: 1px solid #ced4da;
+  background: none;
+  border: 1px solid #ddd; /* Default border */
+  color: #777;
+  cursor: pointer;
+  padding: 6px 12px; /* Adjust padding */
+  border-radius: 15px; /* More rounded */
+  margin: 0; /* Remove default margin */
+  font-size: 13px; /* Slightly smaller */
+  transition: all 0.3s ease;
+  display: inline-flex; /* Align icon and text */
+  align-items: center;
+  gap: 4px; /* Space between icon and text */
 }
 
 .filter-btn:hover {
-  background-color: #e9ecef; /* Light gray hover */
-  border-color: #ced4da;
+  border-color: #bbb;
+  color: #333;
+  background-color: #f5f5f5;
 }
 
 .filter-btn.active {
-  background-color: #0d6efd;
-  color: white;
-  border-color: #0d6efd;
-}
-
-#todo-list {
-  list-style-type: none;
-  padding: 0;
-  margin: 0 0 1.5rem 0;
-}
-
-.todo-item {
-  display: flex;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #dee2e6; /* Slightly darker border */
-  cursor: move;
-  background-color: #ffffff;
-  border-radius: 4px;
-  margin-bottom: 0.5rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); /* Softer shadow */
-  border: 1px solid transparent; /* Add border for dragging state */
-}
-
-.todo-item:last-child {
-  border-bottom: 1px solid #dee2e6; /* Keep border consistent */
-}
-
-.todo-item.dragging {
-  opacity: 0.7;
-  background-color: #e9ecef;
-  border: 1px dashed #adb5bd;
-}
-
-.todo-checkbox {
-  margin-right: 0.75rem;
-  height: 18px;
-  width: 18px;
-}
-
-.todo-text-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.todo-text {
-  font-size: 1rem;
-  margin-bottom: 0.25rem;
-  flex: 1;
-  padding: 0.25rem 0;
-}
-
-.todo-text.completed {
-  text-decoration: line-through;
-  color: #6c757d; /* Darker gray for completed */
-}
-
-.todo-due-date {
-  font-size: 0.8rem;
-  color: #6c757d; /* Standard gray */
-  margin-right: 0.5rem;
-}
-
-/* Remove default background/color, rely on JS inline styles + getContrastColor */
-.todo-category {
-  font-size: 0.8rem;
-  padding: 0.2rem 0.6rem; /* Slightly more padding */
-  border-radius: 12px; /* More rounded */
-  display: inline-block;
-  margin-top: 0.25rem;
-  border: 1px solid transparent; /* Base border */
-  line-height: 1.2; /* Ensure text fits */
-}
-
-.todo-created-date {
-  font-size: 0.75rem;
-  color: #999; /* Lighter gray */
-  margin-top: 0.25rem;
-}
-
-.todo-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.todo-edit {
-  background-color: transparent;
-  color: #55aaff;
-  padding: 0.3rem 0.5rem;
-  font-size: 0.8rem;
-  border: 1px solid #55aaff;
-}
-
-.todo-edit:hover {
-  background-color: #55aaff;
-  color: white;
-}
-
-.todo-delete {
-  background-color: transparent;
-  color: #dc3545; /* Standard danger red */
-  padding: 0.3rem 0.8rem;
-  font-size: 0.8rem;
-  border: 1px solid #dc3545;
-  border-radius: 4px;
-  margin-left: 0.5rem;
-  transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
-}
-
-.todo-delete:hover {
-  background-color: #dc3545;
-  color: white;
-}
-
-.todo-edit-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  width: 100%;
-}
-
-.todo-edit-input,
-.todo-edit-due-date,
-.todo-edit-category {
-  flex: 1;
-  min-width: 100px;
-  padding: 0.4rem 0.6rem;
-  border: 1px solid #ced4da; /* Match other inputs */
-  border-radius: 4px;
-  font-size: 0.9rem;
-  color: #212529;
-  background-color: #ffffff;
-}
-
-.todo-edit-save {
-  background-color: #198754; /* Standard success green */
-  color: white;
-  border: 1px solid #198754;
-  padding: 0.4rem 0.8rem;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
-}
-
-.todo-edit-save:hover {
-  background-color: #157347;
-  border-color: #146c43;
-}
-
-.todo-stats {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.9rem;
-  color: #6c757d; /* Standard gray */
-}
-
-#clear-completed {
-  background-color: transparent;
-  color: #6c757d;
-  border: 1px solid #ced4da; /* Match filter buttons */
-  font-size: 0.9rem;
-  transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
-}
-
-#clear-completed:hover {
-  background-color: #6c757d; /* Darker gray hover */
-  color: white;
-}
-
-/* Modal styles */
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 1000;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  overflow: auto;
-}
-
-.modal-content {
-  background-color: #ffffff;
-  margin: 10% auto; /* Adjust margin */
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2); /* Slightly stronger shadow */
-  width: 90%; /* More responsive */
-  max-width: 500px;
-  border: 1px solid #dee2e6;
-}
-
-.close {
-  color: #6c757d; /* Gray close button */
-  float: right;
-  font-size: 28px;
+  border-color: #5c67f2;
+  color: #fff; /* White text on active */
+  background-color: #5c67f2; /* Theme color background */
   font-weight: bold;
-  cursor: pointer;
 }
 
-.close:hover,
-.close:focus {
-  color: #212529; /* Darker on hover */
-  text-decoration: none;
+.filter-btn.trash-btn {
+  margin-left: auto; /* Push trash button to the right */
+  border-color: #ffcdd2; /* Light red border */
+  color: #d32f2f; /* Darker red text */
 }
 
-.form-group {
-  margin-bottom: 1rem;
+.filter-btn.trash-btn:hover {
+  background-color: #ffebee; /* Light red background */
+  color: #b71c1c; /* Even darker red */
+  border-color: #ef9a9a;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-  color: #495057; /* Slightly lighter label */
-}
 
-#category-name {
-  width: 100%;
-  padding: 0.6rem 1rem;
-  border: 1px solid #ced4da; /* Match other inputs */
-  border-radius: 4px;
-  font-size: 1rem;
-  color: #212529;
-  background-color: #ffffff;
-}
-
-#category-color {
-  width: 100%;
-  height: 40px;
-  border: 1px solid #ced4da; /* Match other inputs */
-  border-radius: 4px;
-  cursor: pointer;
-  padding: 0; /* Remove default padding */
-}
-
-#save-category-btn {
-  margin-top: 1rem;
-  width: 100%;
-  background-color: #198754; /* Match edit save button */
-  border-color: #198754;
-}
-
-#save-category-btn:hover {
-  background-color: #157347;
-  border-color: #146c43;
-}
-
-/* --- View Controls Bar --- */
+/* View Controls Bar (Group/Sort/Direction) */
 .view-controls-bar {
   display: flex;
-  justify-content: flex-end; /* Align groups to the right */
+  flex-wrap: wrap; /* Allow wrapping on small screens */
+  gap: 15px; /* Space between control groups */
   align-items: center;
-  flex-wrap: wrap; /* Allow wrapping on smaller screens */
-  gap: 1rem; /* Space between control groups */
-  margin-bottom: 1.5rem;
-  padding: 0.5rem; /* Add some padding */
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
-  background-color: #f8f9fa;
+  padding: 10px 0;
+  margin-bottom: 20px;
 }
 
 .control-group {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px; /* Space within a group */
 }
 
 .control-label {
-  font-size: 0.9rem;
-  color: #495057;
-  font-weight: 500;
+  font-size: 14px;
+  color: #555;
+  font-weight: bold;
+}
+
+/* Specific group adjustments if needed */
+.group-toggle-group {
+  /* Add specific styles if needed */
+}
+.sort-by-group {
+ /* Add specific styles if needed */
+}
+.sort-direction-group {
+ /* Add specific styles if needed */
 }
 
 .control-btn {
-  padding: 0.3rem 0.7rem; /* Smaller padding */
-  font-size: 0.85rem;
-  background-color: #ffffff;
-  color: #495057;
-  border: 1px solid #ced4da;
-  line-height: 1.2; /* Adjust line height */
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #555;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    display: inline-flex; /* Align icon and text */
+    align-items: center;
+    gap: 4px;
 }
 
 .control-btn:hover {
-  background-color: #e9ecef;
-  border-color: #adb5bd;
+    background-color: #e0e0e0;
 }
 
 .control-btn.active {
-  background-color: #0d6efd;
-  color: white;
-  border-color: #0d6efd;
+    background-color: #5c67f2;
+    color: white;
+    border-color: #4a54cc;
+    font-weight: bold;
 }
 
-/* --- Group by Category Toggle Switch (within bar) --- */
-.switch-label { /* Remove this if not used */
-  /* font-size: 0.9rem; */
-  /* color: #6c757d; */
+
+/* Todo Stats (Items left, Clear completed) */
+.todo-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0;
+  margin-top: 20px;
+  border-top: 1px solid #eee;
+  color: #777;
+  font-size: 14px;
+}
+
+.clear-btn { /* Style for Clear completed button */
+  background: none;
+  border: 1px solid #ffcdd2; /* Light red border */
+  color: #d32f2f; /* Darker red text */
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 15px;
+  font-size: 13px;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.clear-btn:hover {
+  background-color: #ffebee; /* Light red background */
+  color: #b71c1c; /* Even darker red */
+  border-color: #ef9a9a;
+}
+
+
+/* Todo List */
+#todo-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Styles for UL within #todo-list or .category-group-list */
+#todo-list ul,
+.category-group-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+  background-color: #fff;
+  transition: background-color 0.2s ease;
+}
+
+.todo-item:last-child {
+  border-bottom: none;
+}
+
+.todo-item:hover {
+  background-color: #f9f9f9;
+}
+
+.todo-checkbox {
+  margin-right: 15px;
+  cursor: pointer;
+  transform: scale(1.2); /* Slightly larger checkbox */
+}
+
+.todo-text-container {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column; /* Stack text, date, category */
+  gap: 4px; /* Space between text elements */
+  margin-right: 10px; /* Space before delete button */
+}
+
+.todo-text {
+  font-size: 16px;
+  color: #333;
+  word-break: break-word; /* Prevent long text overflow */
+  cursor: pointer; /* Indicate text is editable on dblclick */
+}
+
+.todo-text.completed {
+  text-decoration: line-through;
+  color: #aaa;
+}
+
+.todo-due-date,
+.todo-created-date {
+  font-size: 12px;
+  color: #888;
+}
+
+.todo-category {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  align-self: flex-start; /* Don't stretch */
+  margin-top: 2px;
+}
+
+.todo-delete {
+  background: none;
+  border: none;
+  color: #ff5555; /* Red color for delete */
+  cursor: pointer;
+  font-size: 18px; /* Make icon slightly larger */
+  padding: 5px;
+  opacity: 0.6; /* Slightly faded */
+  transition: opacity 0.2s ease, color 0.2s ease;
+  line-height: 1; /* Ensure icon aligns well */
+}
+
+.todo-item:hover .todo-delete {
+  opacity: 1; /* Show clearly on hover */
+}
+
+.todo-delete:hover {
+  color: #cc0000; /* Darker red on hover */
+}
+
+/* Edit Form Styles */
+.todo-edit-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    width: 100%; /* Take full width within the container */
+}
+
+.todo-edit-input {
+    flex-grow: 1;
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 15px; /* Slightly smaller than view */
+}
+
+.todo-edit-due-date,
+.todo-edit-category {
+    padding: 8px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 13px;
+    background-color: #fff;
+    color: #555;
+}
+
+.todo-edit-category {
+    min-width: 150px;
+}
+
+.todo-edit-save {
+    padding: 8px 15px;
+    background-color: #4CAF50; /* Green for save */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+}
+
+.todo-edit-save:hover {
+    background-color: #45a049;
+}
+
+.todo-edit-cancel { /* Style for cancel button */
+    padding: 8px 15px;
+    background-color: #f44336; /* Red for cancel */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+    margin-left: 5px; /* Space from save button */
+}
+
+.todo-edit-cancel:hover {
+    background-color: #d32f2f;
+}
+
+
+/* Category Grouping */
+.category-group {
+  margin-bottom: 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 5px;
+  overflow: hidden; /* Contain children */
+}
+
+.category-group-header {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  background-color: #f8f8f8;
+  cursor: pointer;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.category-group.folded .category-group-header {
+    border-bottom: none; /* No border when folded */
+}
+
+
+.category-color-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 10px;
+  flex-shrink: 0; /* Prevent shrinking */
+}
+
+.category-name {
+  font-weight: bold;
+  color: #444;
+  flex-grow: 1; /* Take available space */
+}
+
+.toggle-icon {
+  font-size: 12px;
+  color: #777;
+  margin-left: 10px;
+  transition: transform 0.2s ease;
+}
+
+.category-group.folded .toggle-icon {
+    /* transform: rotate(-90deg); */ /* Keep simple arrows for now */
+}
+
+.category-group-list {
+  /* list-style: none; */ /* Already set above */
+  /* padding: 0; */ /* Already set above */
+  /* margin: 0; */ /* Already set above */
+  max-height: 500px; /* Limit height */
+  overflow-y: auto; /* Allow scrolling if needed */
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+  opacity: 1;
+}
+
+.category-group.folded .category-group-list {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+/* Grouped items might need slightly less padding */
+.category-group-list .todo-item {
+    padding: 12px 15px;
+}
+
+/* Grouping Toggle Switch */
+.grouping-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 15px;
 }
 
 .switch {
   position: relative;
   display: inline-block;
-  width: 44px; /* Smaller width */
-  height: 24px; /* Smaller height */
+  width: 40px; /* Smaller switch */
+  height: 20px;
 }
 
 .switch input {
@@ -457,461 +471,222 @@ button:active,
   bottom: 0;
   background-color: #ccc;
   transition: .4s;
+  border-radius: 20px; /* Rounded slider */
 }
 
 .slider:before {
   position: absolute;
   content: "";
-  height: 18px; /* Smaller handle */
-  width: 18px;  /* Smaller handle */
-  left: 3px;   /* Adjust position */
-  bottom: 3px;  /* Adjust position */
+  height: 14px; /* Smaller knob */
+  width: 14px;
+  left: 3px; /* Adjust position */
+  bottom: 3px; /* Adjust position */
   background-color: white;
   transition: .4s;
+  border-radius: 50%;
 }
 
 input:checked + .slider {
-  background-color: #0d6efd; /* Match button blue */
+  background-color: #5c67f2; /* Use theme color */
 }
 
 input:focus + .slider {
-  box-shadow: 0 0 1px #0d6efd;
+  box-shadow: 0 0 1px #5c67f2;
 }
 
 input:checked + .slider:before {
   transform: translateX(20px); /* Adjust slide distance */
 }
 
-/* Rounded sliders */
-.slider.round {
-  border-radius: 24px; /* Match height */
-}
-
-.slider.round:before {
-  border-radius: 50%;
-}
-
-/* --- Category Grouping Styles --- */
-.category-group {
-  margin-bottom: 1rem;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  overflow: hidden; /* Contain children */
-}
-
-.category-group-header {
-  display: flex;
-  align-items: center;
-  padding: 0.6rem 1rem;
-  background-color: #f8f9fa;
-  cursor: pointer;
-  border-bottom: 1px solid #e0e0e0;
-  font-weight: 500;
-}
-
-.category-group-header:hover {
-  background-color: #e9ecef;
-}
-
-.category-group-header .category-color-indicator {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  margin-right: 0.75rem;
-  border: 1px solid rgba(0,0,0,0.1);
-}
-
-.category-group-header .category-name {
-  flex-grow: 1;
-}
-
-.category-group-header .toggle-icon {
-  margin-left: 0.5rem;
-  transition: transform 0.2s ease-in-out;
-  font-size: 0.8em; /* Make icon smaller */
-}
-
-.category-group.folded .category-group-header .toggle-icon {
-  transform: rotate(-90deg);
-}
-
-.category-group-list {
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
-  max-height: 1000px; /* Allow transition */
-  overflow: hidden;
-  transition: max-height 0.3s ease-out, padding 0.3s ease-out;
-}
-
-.category-group.folded .category-group-list {
-  max-height: 0;
-  padding-top: 0;
-  padding-bottom: 0;
-  border-top: none; /* Hide border when folded */
-}
-
-/* Adjustments for items within groups */
-.category-group-list .todo-item {
-  border-radius: 0;
-  box-shadow: none;
-  border-top: 1px solid #eee; /* Separator within group */
-  margin-bottom: 0;
-}
-.category-group-list .todo-item:first-child {
-  border-top: none;
-}
-.category-group-list .todo-item:last-child {
-   border-bottom: none; /* Remove bottom border of last item */
-}
-
-/* --- REMOVED Sorting Controls (Adjustments) --- */
-/* .sort-controls-container { ... } */
-/* .sort-label { ... } */
-/* .sort-select { ... } */
-
-
-/* Dark Theme Adjustments */
-@media (prefers-color-scheme: dark) {
-  :root {
-    color: #dee2e6;
-    background-color: #212529;
-  }
-
-  /* --- Dark Theme: View Controls Bar --- */
-  .view-controls-bar {
-    background-color: #343a40;
-    border-color: #495057;
-  }
-
-  .control-label {
-    color: #adb5bd;
-  }
-
-  .control-btn {
-    background-color: #495057;
-    border-color: #6c757d;
-    color: #dee2e6;
-  }
-
-  .control-btn:hover {
-    background-color: #5a6268;
-    border-color: #88929b;
-  }
-
-  .control-btn.active {
-    background-color: #0d6efd;
-    color: white;
-    border-color: #0d6efd;
-  }
-
-  /* --- Dark Theme: Toggle Switch --- */
-  /* .switch-label { color: #adb5bd; } */ /* Handled by .control-label */
-
-  .slider {
-    background-color: #6c757d; /* Darker base for slider */
-  }
-
-  input:checked + .slider {
-    background-color: #0d6efd; /* Keep blue for checked */
-  }
-
-  /* --- Dark Theme: Category Grouping --- */
-   .category-group {
-    border-color: #495057;
-  }
-  .todo-created-date {
-    color: #888; /* Slightly darker gray for dark mode */
-  }
-
-  .category-group-header {
-    background-color: #343a40;
-    border-bottom-color: #495057;
-    color: #dee2e6;
-  }
-
-  .category-group-header:hover {
-    background-color: #495057;
-  }
-
-   .category-group-header .category-color-indicator {
-     border-color: rgba(255,255,255,0.1);
-   }
-
-  .category-group-list .todo-item {
-    background-color: #343a40; /* Match group header bg */
-    border-top-color: #495057;
-  }
-   .category-group-list .todo-item:last-child {
-     border-bottom: none;
-   }
-
-
-  /* --- Other Dark Theme Rules --- */
-  h1 {
-    color: #589cff; /* Lighter blue for dark mode */
-  }
-
-  .todo-container {
-    background-color: #343a40; /* Darker container */
-    border-color: #495057; /* Darker border */
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
-
-  #todo-input,
-  #todo-due-date,
-  .category-select,
-  #category-name {
-    background-color: #495057; /* Darker input background */
-    border-color: #6c757d;
-    color: #dee2e6;
-  }
-
-  .category-select {
-     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23adb5bd' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
-  }
-
-  button,
-  .button {
-    background-color: #0d6efd;
-    border-color: #0d6efd;
-    color: white;
-  }
-
-  button:hover,
-  .button:hover {
-    background-color: #0b5ed7;
-    border-color: #0a58ca;
-  }
-
-  .filter-btn {
-    color: #adb5bd; /* Lighter gray text */
-    border-color: #495057;
-  }
-
-   .filter-btn:hover {
-    background-color: #495057; /* Darker gray hover */
-    border-color: #6c757d;
-  }
-
-  .filter-btn.active {
-    background-color: #0d6efd;
-    color: white;
-    border-color: #0d6efd;
-  }
-
-  .todo-item {
-    background-color: #343a40;
-    border-bottom-color: #495057;
-    border-color: transparent;
-  }
-
-  .todo-item:last-child {
-    border-bottom-color: #495057;
-  }
-
-  .todo-item.dragging {
-    background-color: #495057;
-    border: 1px dashed #6c757d;
-  }
-
-  .todo-text {
-    color: #dee2e6;
-  }
-
-  .todo-text.completed {
-    color: #6c757d; /* Consistent gray for completed */
-  }
-
-  .todo-due-date {
-    color: #adb5bd; /* Lighter gray */
-  }
-
-  /* Category text color handled by JS getContrastColor */
-
-  .todo-delete {
-    color: #ff7f7f; /* Lighter red */
-    border-color: #ff7f7f;
-  }
-
-  .todo-delete:hover {
-    background-color: #ff7f7f;
-    color: #212529; /* Dark text on light red */
-  }
-
-  .todo-edit-input,
-  .todo-edit-due-date,
-  .todo-edit-category {
-    background-color: #495057;
-    border-color: #6c757d;
-    color: #dee2e6;
-  }
-
-  .todo-edit-save {
-    background-color: #20c997; /* Tealish green */
-    border-color: #20c997;
-    color: #212529; /* Dark text */
-  }
-
-  .todo-edit-save:hover {
-    background-color: #1baa80;
-    border-color: #179a71;
-  }
-
-  .todo-stats {
-    color: #adb5bd; /* Lighter gray */
-  }
-
-  #clear-completed {
-    color: #adb5bd;
-    border-color: #495057;
-  }
-
-  #clear-completed:hover {
-    background-color: #6c757d;
-    color: white;
-  }
-
-  /* Modal Dark Theme */
-  .modal-content {
-    background-color: #343a40;
-    border-color: #495057;
-  }
-
-  .close {
-    color: #adb5bd;
-  }
-
-  .close:hover,
-  .close:focus {
-    color: #dee2e6;
-  }
-
-  .form-group label {
-    color: #adb5bd;
-  }
-
-  #category-color {
-    border-color: #6c757d;
-  }
-
-  #save-category-btn {
-    background-color: #20c997; /* Match edit save */
-    border-color: #20c997;
-    color: #212529; /* Dark text */
-  }
-
-  #save-category-btn:hover {
-    background-color: #1baa80;
-    border-color: #179a71;
-  }
-}
-
-/* Trash button */
-.trash-btn {
-  background-color: #ff7777;
-  color: white;
-  border-color: #ff5555;
-}
-
-.trash-btn:hover {
-  background-color: #ff5555;
-}
-
-/* Trash container */
-.trash-container {
+/* Modal Styles */
+.modal {
   display: none; /* Hidden by default */
-  background-color: #fff8f8;
-  border: 1px solid #ffdddd;
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
+  position: fixed; /* Stay in place */
+  z-index: 10; /* Ensure modal is on top */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
 }
 
-.trash-container h2 {
-  margin-top: 0;
-  color: #ff5555;
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
+.modal-content {
+  background-color: #fefefe;
+  margin: 15% auto; /* 15% from the top and centered */
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%; /* Could be more or less, depending on screen size */
+  max-width: 400px; /* Maximum width */
+  border-radius: 5px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  position: relative; /* Needed for close button positioning */
 }
 
-#trash-list {
-  list-style-type: none;
-  padding: 0;
-  margin: 0 0 1rem 0;
-}
-
-.trash-item {
-  display: flex;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #ffeeee;
-  background-color: #fffafa;
-  border-radius: 4px;
-  margin-bottom: 0.5rem;
-}
-
-.trash-text {
-  flex: 1;
-  color: #888;
-  text-decoration: line-through;
-  margin-right: 1rem;
-}
-
-.trash-date {
-  font-size: 0.8rem;
+.close {
   color: #aaa;
-  margin-right: 1rem;
+  position: absolute; /* Position relative to modal-content */
+  top: 10px;
+  right: 15px;
+  font-size: 28px;
+  font-weight: bold;
 }
 
+.close:hover,
+.close:focus {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.modal h2 {
+    margin-top: 0;
+    color: #333;
+    margin-bottom: 20px; /* Add space below title */
+}
+
+.modal .form-group { /* Add class for spacing */
+    margin-bottom: 15px;
+}
+
+
+.modal label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #555;
+}
+
+.modal input[type="text"],
+.modal input[type="color"] {
+    width: calc(100% - 22px); /* Adjust for padding/border */
+    padding: 10px;
+    /* margin-bottom: 15px; */ /* Handled by form-group */
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box; /* Include padding/border in width */
+}
+
+.modal input[type="color"] {
+    padding: 5px; /* Color input padding is different */
+    height: 40px; /* Make color picker taller */
+}
+
+#save-category-btn {
+    background-color: #5c67f2;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    width: 100%; /* Full width button */
+    margin-top: 10px; /* Space above button */
+}
+
+#save-category-btn:hover {
+    background-color: #4a54cc;
+}
+
+/* Trash Window Specific Styles (Optional) */
+.trash-window-container {
+    /* Add any specific styles for the trash window container if needed */
+    /* Example: Ensure body has some padding in the new window */
+    /* body { padding: 20px; } */
+    padding-top: 15px;
+}
+
+.trash-window-container h2 {
+     margin-top: 0;
+    color: #555;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+/* Reuse .trash-item styles from before, but adjust if needed */
+.trash-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 5px;
+    border-bottom: 1px solid #f0f0f0;
+    gap: 10px;
+}
+.trash-item:last-child { border-bottom: none; }
+.trash-text { flex-grow: 1; color: #666; text-decoration: line-through; font-size: 15px; word-break: break-word; }
+.trash-date { font-size: 12px; color: #999; flex-shrink: 0; margin-left: 10px; }
+
+.trash-item-actions { /* Container for buttons within a trash item */
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.trash-restore,
+.trash-delete { /* Buttons within each trash item */
+    background: none;
+    border: 1px solid transparent;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.trash-restore { color: #4CAF50; }
+.trash-restore:hover { background-color: #e8f5e9; border-color: #c8e6c9; }
+.trash-delete { color: #f44336; }
+.trash-delete:hover { background-color: #ffebee; border-color: #ffcdd2; }
+
+/* Styles for the bottom action bar in the trash window */
 .trash-actions {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 1rem;
+    display: flex;
+    justify-content: flex-end; /* Align button to the right */
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
 }
 
-.trash-restore {
-  background-color: #55aa55;
-  color: white;
-  border: none;
-  padding: 0.3rem 0.8rem;
+#empty-trash { /* Button at the bottom of the trash window */
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    border: 1px solid #ffcdd2;
+    background-color: #ffeff0;
+    color: #d32f2f;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+#empty-trash:hover:not(:disabled) { background-color: #ffcdd2; border-color: #ef9a9a; }
+#empty-trash:disabled { opacity: 0.6; cursor: not-allowed; background-color: #f5f5f5; border-color: #e0e0e0; color: #aaa; }
+
+
+/* Drag and Drop Styles */
+.todo-item.dragging {
+  opacity: 0.4; /* Make it more transparent */
+  background-color: #d3e3fd; /* Lighter blue background */
+  /* Add a subtle box-shadow or border */
+   box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+   border-color: #a8c7fa;
+}
+
+.drag-placeholder {
+  background-color: #e6f0ff; /* Lighter blue placeholder */
+  border: 2px dashed #a8c7fa; /* Dashed blue border */
+  margin: 5px 0; /* Add some margin */
+  min-height: 40px; /* Placeholder height - adjust as needed */
+  list-style: none; /* Ensure no list bullet */
+  box-sizing: border-box; /* Include border in height */
   border-radius: 4px;
-  font-size: 0.8rem;
 }
 
-.trash-restore:hover {
-  background-color: #448844;
-}
+/* Optional: Highlight list when dragging over */
 
-.trash-delete {
-  background-color: #ff5555;
-  color: white;
-  border: none;
-  padding: 0.3rem 0.8rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
-}
-
-.trash-delete:hover {
-  background-color: #dd4444;
-}
-
-#empty-trash {
-  background-color: #ff5555;
-  color: white;
-  border: none;
-}
-
-#empty-trash:hover {
-  background-color: #dd4444;
-}
-
-#close-trash {
-  background-color: #aaaaaa;
-  color: white;
-  border: none;
-}
-
-#close-trash:hover {
-  background-color: #888888;
+ul.drag-over-active {
+    background-color: #f8fbff; /* Very light blue background */
+    outline: 1px dashed #c1d9fc; /* Subtle outline */
+    outline-offset: -2px; /* Inset outline slightly */
 }

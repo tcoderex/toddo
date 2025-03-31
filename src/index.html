@@ -28,25 +28,25 @@
           <button type="button" id="filter-all" class="filter-btn active">All</button>
           <button type="button" id="filter-active" class="filter-btn">Active</button>
           <button type="button" id="filter-completed" class="filter-btn">Completed</button>
-          <button type="button" id="view-trash" class="filter-btn trash-btn">Trash</button>
+          <button type="button" id="view-trash" class="filter-btn trash-btn">🗑️ Trash</button>
         </div>
 
         <!-- View Controls Bar -->
         <div class="view-controls-bar">
-          <div class="control-group">
+          <div class="control-group group-toggle-group">
             <span class="control-label">Group:</span>
             <label class="switch">
               <input type="checkbox" id="group-by-category-toggle" aria-label="Group by category">
               <span class="slider round"></span>
             </label>
           </div>
-          <div class="control-group">
+          <div class="control-group sort-by-group">
             <span class="control-label">Sort By:</span>
             <button type="button" class="control-btn sort-by-btn" data-sort="position">Position</button>
             <button type="button" class="control-btn sort-by-btn" data-sort="name">Name</button>
             <button type="button" class="control-btn sort-by-btn" data-sort="date">Date Added</button>
           </div>
-           <div class="control-group">
+           <div class="control-group sort-direction-group">
              <span class="control-label">Direction:</span>
             <button type="button" class="control-btn sort-direction-btn" data-direction="asc">▲ Asc</button>
             <button type="button" class="control-btn sort-direction-btn" data-direction="desc">▼ Desc</button>
@@ -55,19 +55,11 @@
 
         <ul id="todo-list"></ul>
 
-        <!-- Trash container (hidden by default) -->
-        <div id="trash-container" class="trash-container" style="display: none;">
-          <h2>Trash</h2>
-          <ul id="trash-list"></ul>
-          <div class="trash-actions">
-            <button type="button" id="empty-trash">Empty Trash</button>
-            <button type="button" id="close-trash">Close Trash</button>
-          </div>
-        </div>
+        <!-- Trash container removed - now handled in separate window -->
 
         <div class="todo-stats">
           <span id="items-left">0 items left</span>
-          <button type="button" id="clear-completed">Clear completed</button>
+          <button type="button" id="clear-completed" class="clear-btn">🧹 Clear completed</button>
         </div>
 
         <!-- Category Modal -->
