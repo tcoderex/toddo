@@ -1787,7 +1787,7 @@ function createFloatingControls() {
     document.body.appendChild(floatingControls);
 
     // Store reference to original controls bar
-    originalControlsBar = document.querySelector('.view-controls-bar');
+    originalControlsBar = document.querySelector('.sort-controls-row');
 
     // Initial UI update
     updateFloatingControlsUI();
@@ -1795,26 +1795,40 @@ function createFloatingControls() {
 
 function initializeScrollHandling() {
     let timeout;
-    window.addEventListener('scroll', () => {
-        const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
 
+    // Function to check if original controls are visible in viewport
+    const areControlsVisible = () => {
+        if (!originalControlsBar) return true;
+
+        const rect = originalControlsBar.getBoundingClientRect();
+        // Check if the top of the controls is visible in the viewport
+        return rect.top >= 0 && rect.top < window.innerHeight;
+    };
+
+    window.addEventListener('scroll', () => {
         // Clear any existing timeout
         clearTimeout(timeout);
 
-        // Show/hide floating controls based on scroll position
-        if (currentScroll > SCROLL_THRESHOLD) {
+        // Show/hide floating controls based on whether original controls are visible
+        if (!areControlsVisible()) {
+            // Original controls are not visible, show floating controls
             floatingControls.classList.add('visible');
-            originalControlsBar.classList.add('hidden');
         } else {
             // Add a small delay before hiding to prevent flickering
             timeout = setTimeout(() => {
                 floatingControls.classList.remove('visible');
-                originalControlsBar.classList.remove('hidden');
             }, 150);
         }
 
-        lastScrollPosition = currentScroll;
+        lastScrollPosition = window.pageYOffset || document.documentElement.scrollTop;
     });
+
+    // Initial check
+    setTimeout(() => {
+        if (!areControlsVisible()) {
+            floatingControls.classList.add('visible');
+        }
+    }, 500);
 }
 
 // New function to update floating controls UI

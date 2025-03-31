@@ -1265,6 +1265,14 @@ ul.drag-over-active {
     width: auto;
     height: auto;
     padding: 10px;
+    transition-delay: 0.1s; /* Slight delay before expanding */
+}
+
+/* Keep expanded state for a while after hover ends */
+.floating-sort-controls:hover .sort-controls-wrapper {
+    display: flex;
+    transition: all 0.5s ease;
+    transition-delay: 0.2s; /* Delay before hiding after hover ends */
 }
 
 .floating-sort-controls .sort-icon {
