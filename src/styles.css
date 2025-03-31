@@ -128,30 +128,126 @@ h1 {
 /* View Controls Bar (Group/Sort/Direction) */
 .view-controls-bar {
   display: flex;
-  flex-wrap: wrap; /* Allow wrapping on small screens */
-  gap: 15px; /* Space between control groups */
+  gap: 16px;
   align-items: center;
-  padding: 10px 0;
-  margin-bottom: 20px;
-  /* Make controls sticky */
-  position: sticky;
-  top: 0; /* Stick to the top */
-  background-color: #fff; /* Add background to prevent content showing through */
-  z-index: 5; /* Ensure it's above the list content */
-  padding: 10px 0; /* Keep padding */
-  border-bottom: 1px solid #eee; /* Add a separator */
+  margin-bottom: 15px;
+  flex-wrap: wrap;
 }
 
-.control-group {
+.sort-controls-wrapper {
   display: flex;
   align-items: center;
-  gap: 8px; /* Space within a group */
+  gap: 4px;
 }
 
-.control-label {
-  font-size: 14px;
-  color: #555;
-  font-weight: bold;
+.sort-direction-group {
+  display: flex;
+  gap: 2px;
+}
+
+.sort-direction-btn {
+  padding: 4px 8px;
+}
+
+/* Category styling */
+.category-group {
+  margin-bottom: 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.category-header:hover {
+  background-color: #e8e8e8;
+}
+
+.category-header:focus {
+  outline: 2px solid #2196f3;
+  outline-offset: -2px;
+  background-color: #e8e8e8;
+}
+
+.category-title-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  pointer-events: none; /* Prevent click issues with child elements */
+}
+
+.category-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.category-action-btn {
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #666;
+  transition: all 0.2s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.category-action-btn:hover {
+  background-color: #e0e0e0;
+  border-color: #ccc;
+}
+
+.category-action-btn:focus {
+  outline: 2px solid #2196f3;
+  outline-offset: -2px;
+}
+
+.category-action-btn.complete:hover {
+  color: #4caf50;
+  background-color: rgba(76, 175, 80, 0.1);
+}
+
+.category-action-btn.activate:hover {
+  color: #2196f3;
+  background-color: rgba(33, 150, 243, 0.1);
+}
+
+.category-fold-icon {
+  transition: transform 0.2s ease;
+  display: inline-block;
+  width: 20px;
+  text-align: center;
+}
+
+.category-group.folded .category-fold-icon {
+  transform: rotate(-90deg);
+}
+
+.subcategory-indicator {
+  font-size: 0.8em;
+  color: #666;
+  margin-left: 4px;
+}
+
+.category-group.subcategory {
+  margin-left: 20px;
+  border-left: 2px solid #e0e0e0;
 }
 
 /* Specific group adjustments if needed - uncomment and add styles as needed
@@ -480,6 +576,12 @@ h1 {
   padding-left: 0;
   margin-top: 0;
   margin-bottom: 0;
+  transition: max-height 0.3s ease-out;
+  overflow: hidden;
+}
+
+.category-group.folded .subcategories-container {
+  max-height: 0;
 }
 
 .toggle-icon {

@@ -574,196 +574,227 @@ function renderTodos() {
   itemsLeftSpan.textContent = `${activeCount} item${activeCount !== 1 ? 's' : ''} left`;
 }
 
-// Render a category group with its todos and subcategories
-function renderCategoryGroup(categoryId, groupedTodos, parentElement, level) {
-  // Skip if this category has no todos and no subcategories
-  const hasSubcategories = categories.some(cat => cat.parent_id === parseInt(categoryId));
-  const hasTodos = groupedTodos[categoryId] && groupedTodos[categoryId].todos.length > 0;
+function createCategoryHeader(categoryId, categoryName, color, todos, isSubcategory = false) {
+    const header = document.createElement('div');
+    header.className = 'category-header';
+    header.setAttribute('role', 'button');
+    header.setAttribute('tabindex', '0'); // Make it focusable
+    header.setAttribute('aria-expanded', !foldedCategories.has(categoryId));
+    
+    // Title section
+    const titleSection = document.createElement('div');
+    titleSection.className = 'category-title-section';
+    
+    const foldIcon = document.createElement('span');
+    foldIcon.className = 'category-fold-icon';
+    foldIcon.textContent = foldedCategories.has(categoryId) ? '►' : '▼';
+    foldIcon.setAttribute('aria-hidden', 'true');
+    titleSection.appendChild(foldIcon);
 
-  if (!hasTodos && !hasSubcategories) return;
+    const colorDot = document.createElement('span');
+    colorDot.className = 'category-color-dot';
+    colorDot.style.backgroundColor = color || '#666';
+    colorDot.setAttribute('aria-hidden', 'true');
+    titleSection.appendChild(colorDot);
 
-  // Get category data
-  let category = null;
-  let categoryName = 'Uncategorized';
-  let categoryColor = '#cccccc';
-
-  if (categoryId !== 'uncategorized') {
-    category = categories.find(c => c.id.toString() === categoryId);
-    if (category) {
-      categoryName = category.name;
-      categoryColor = category.color;
+    const title = document.createElement('span');
+    title.className = 'category-title';
+    title.textContent = categoryName || 'Uncategorized';
+    title.id = `category-title-${categoryId}`;
+    if (isSubcategory) {
+        title.classList.add('subcategory-title');
     }
-  }
+    titleSection.appendChild(title);
 
-  // Create category group container
-  const groupDiv = document.createElement('div');
-  groupDiv.className = 'category-group';
-  groupDiv.dataset.categoryId = categoryId;
-  groupDiv.dataset.level = level;
+    const count = document.createElement('span');
+    count.className = 'category-count';
+    count.textContent = `(${todos.length})`;
+    count.id = `category-count-${categoryId}`;
+    titleSection.appendChild(count);
 
-  if (level > 0) {
-    groupDiv.classList.add('subcategory');
-    groupDiv.style.marginLeft = `${level * 20}px`; // Indent subcategories
-  }
+    header.appendChild(titleSection);
 
-  // Create header
-  const header = document.createElement('div');
-  header.className = 'category-group-header';
+    // Actions section
+    const actionsSection = document.createElement('div');
+    actionsSection.className = 'category-actions';
 
-  const colorIndicator = document.createElement('span');
-  colorIndicator.className = 'category-color-indicator';
-  colorIndicator.style.backgroundColor = categoryColor;
+    // Complete all button
+    const completeBtn = document.createElement('button');
+    completeBtn.type = 'button';
+    completeBtn.className = 'category-action-btn complete';
+    completeBtn.innerHTML = '✓';
+    completeBtn.id = `complete-btn-${categoryId}`;
+    completeBtn.title = 'Complete all tasks';
+    completeBtn.setAttribute('aria-label', 'Complete all tasks in category');
+    
+    // Activate all button
+    const activateBtn = document.createElement('button');
+    activateBtn.type = 'button';
+    activateBtn.className = 'category-action-btn activate';
+    activateBtn.innerHTML = '○';
+    activateBtn.id = `activate-btn-${categoryId}`;
+    activateBtn.title = 'Activate all tasks';
+    activateBtn.setAttribute('aria-label', 'Activate all tasks in category');
 
-  const nameSpan = document.createElement('span');
-  nameSpan.className = 'category-name';
-  nameSpan.textContent = categoryName;
-
-  const toggleIcon = document.createElement('span');
-  toggleIcon.className = 'toggle-icon';
-  toggleIcon.textContent = foldedCategories.has(categoryId) ? '▶' : '▼';
-
-  header.appendChild(colorIndicator);
-  header.appendChild(nameSpan);
-  header.appendChild(toggleIcon);
-
-  // Create todo list if this category has todos
-  if (hasTodos) {
-    const groupList = document.createElement('ul');
-    groupList.className = 'category-group-list';
-
-    // Sort todos within the category
-    const todosToRender = [...groupedTodos[categoryId].todos];
-
-    // Only sort the todos if we're targeting tasks
-    if (sortTarget === 'tasks') {
-      todosToRender.sort((a, b) => {
-        let compareA, compareB;
-
-        switch (sortBy) {
-          case 'name': compareA = a.text.toLowerCase(); compareB = b.text.toLowerCase(); break;
-          case 'date': compareA = a.created_at || ''; compareB = b.created_at || ''; break;
-          default: compareA = a.text.toLowerCase(); compareB = b.text.toLowerCase(); break;
-        }
-
-        let comparison = 0;
-        if (compareA > compareB) comparison = 1;
-        else if (compareA < compareB) comparison = -1;
-        return sortDirection === 'desc' ? (comparison * -1) : comparison;
-      });
-    }
-
-    // Render the sorted todos
-    todosToRender.forEach(todo => {
-      groupList.appendChild(createTodoElement(todo));
+    // Improved click handlers with stopPropagation
+    completeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleCategoryTodos(categoryId, true);
     });
 
-    addDragDropListenersToList(groupList);
+    activateBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleCategoryTodos(categoryId, false);
+    });
 
-    if (foldedCategories.has(categoryId)) {
-      groupDiv.classList.add('folded');
-    }
+    actionsSection.appendChild(completeBtn);
+    actionsSection.appendChild(activateBtn);
+    header.appendChild(actionsSection);
+
+    // Add smooth click handling for the entire header
+    header.addEventListener('click', (e) => {
+        // Only toggle if clicking the header itself or title section
+        if (e.target === header || 
+            e.target === titleSection || 
+            e.target === foldIcon || 
+            e.target === title || 
+            e.target === count) {
+            toggleCategoryFold(categoryId, header.closest('.category-group'));
+        }
+    });
+
+    // Add keyboard support
+    header.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleCategoryFold(categoryId, header.closest('.category-group'));
+        }
+    });
+
+    return header;
+}
+
+function toggleCategoryTodos(categoryId, setCompleted) {
+    const updateTodosInCategory = (categoryId) => {
+        todos.forEach(todo => {
+            if (categoryId === 'uncategorized' && !todo.category) {
+                todo.completed = setCompleted;
+            } else if (todo.category && todo.category.id.toString() === categoryId) {
+                todo.completed = setCompleted;
+            }
+        });
+    };
+
+    // Update the specified category
+    updateTodosInCategory(categoryId);
+
+    // If it's a parent category, also update all its subcategories
+    const subcategories = categories.filter(cat => cat.parent_id === parseInt(categoryId));
+    subcategories.forEach(subcat => {
+        updateTodosInCategory(subcat.id.toString());
+    });
+
+    saveTodos();
+    renderTodos();
+}
+
+function renderCategoryGroup(categoryId, groupedTodos, parentElement, level = 0) {
+    const hasSubcategories = categories.some(cat => cat.parent_id === parseInt(categoryId));
+    const todos = groupedTodos[categoryId]?.todos || [];
+    const category = categories.find(c => c.id.toString() === categoryId);
+    const isSubcategory = level > 0;
+    
+    const groupDiv = document.createElement('div');
+    groupDiv.className = `category-group${isSubcategory ? ' subcategory' : ''}`;
+    
+    // Create and add the new header with controls
+    const header = createCategoryHeader(
+        categoryId,
+        category?.name,
+        category?.color,
+        todos,
+        isSubcategory
+    );
 
     groupDiv.appendChild(header);
-    groupDiv.appendChild(groupList);
-  } else {
-    // If no todos, just add the header
-    groupDiv.appendChild(header);
-  }
 
-  // Add to parent element
-  parentElement.appendChild(groupDiv);
+    if (todos.length > 0) {
+        const todosList = document.createElement('ul');
+        todosList.className = 'category-todos';
+        
+        todos.forEach(todo => {
+            todosList.appendChild(createTodoElement(todo));
+        });
 
-  // Add click handler for folding/unfolding
-  header.addEventListener('click', () => toggleCategoryFold(categoryId, groupDiv));
-
-  // Recursively render subcategories
-  const subcategoryIds = categories
-    .filter(cat => cat.parent_id === parseInt(categoryId))
-    .map(cat => cat.id.toString());
-
-  if (subcategoryIds.length > 0) {
-    // Sort subcategories based on the sort target
-    if (sortTarget === 'categories') {
-      // Use the same sorting logic as for root categories
-      subcategoryIds.sort((a, b) => {
-        // Find the category objects
-        const categoryA = categories.find(c => c.id.toString() === a);
-        const categoryB = categories.find(c => c.id.toString() === b);
-
-        if (!categoryA || !categoryB) return 0;
-
-        let compareA, compareB;
-        switch (sortBy) {
-          case 'name':
-            compareA = categoryA.name.toLowerCase();
-            compareB = categoryB.name.toLowerCase();
-            break;
-          case 'date':
-            // If categories have a created_at property, use it; otherwise, use ID as a fallback
-            compareA = categoryA.created_at || categoryA.id.toString();
-            compareB = categoryB.created_at || categoryB.id.toString();
-            break;
-          default:
-            compareA = categoryA.name.toLowerCase();
-            compareB = categoryB.name.toLowerCase();
-            break;
+        if (foldedCategories.has(categoryId)) {
+            todosList.style.display = 'none';
         }
 
-        let comparison = 0;
-        if (compareA > compareB) comparison = 1;
-        else if (compareA < compareB) comparison = -1;
-        return sortDirection === 'desc' ? (comparison * -1) : comparison;
-      });
-    } else {
-      // If not sorting categories, just sort alphabetically
-      subcategoryIds.sort((a, b) => {
-        const catA = categories.find(c => c.id.toString() === a)?.name || '';
-        const catB = categories.find(c => c.id.toString() === b)?.name || '';
-        return catA.localeCompare(catB);
-      });
+        groupDiv.appendChild(todosList);
     }
 
-    // Create a container for subcategories
-    const subcategoriesContainer = document.createElement('div');
-    subcategoriesContainer.className = 'subcategories-container';
+    parentElement.appendChild(groupDiv);
 
-    if (foldedCategories.has(categoryId)) {
-      subcategoriesContainer.style.display = 'none';
-    }
-
-    groupDiv.appendChild(subcategoriesContainer);
-
-    // Render each subcategory
-    subcategoryIds.forEach(subCategoryId => {
-      renderCategoryGroup(subCategoryId, groupedTodos, subcategoriesContainer, level + 1);
+    // Add click handler for folding/unfolding
+    header.querySelector('.category-title-section').addEventListener('click', () => {
+        toggleCategoryFold(categoryId, groupDiv);
     });
-  }
+
+    // Render subcategories if any
+    if (hasSubcategories) {
+        const subcategoriesContainer = document.createElement('div');
+        subcategoriesContainer.className = 'subcategories-container';
+        if (foldedCategories.has(categoryId)) {
+            subcategoriesContainer.style.display = 'none';
+        }
+        
+        const subcategoryIds = categories
+            .filter(cat => cat.parent_id === parseInt(categoryId))
+            .map(cat => cat.id.toString());
+
+        subcategoryIds.forEach(subId => {
+            renderCategoryGroup(subId, groupedTodos, subcategoriesContainer, level + 1);
+        });
+
+        groupDiv.appendChild(subcategoriesContainer);
+    }
 }
 
 // Toggle category fold state
 function toggleCategoryFold(categoryId, groupElement) {
     const isFolded = foldedCategories.has(categoryId);
+    const foldIcon = groupElement.querySelector('.category-fold-icon');
+    const todosList = groupElement.querySelector('.category-todos');
+    const subcategoriesContainer = groupElement.querySelector('.subcategories-container');
+
     if (isFolded) {
         foldedCategories.delete(categoryId);
         groupElement.classList.remove('folded');
-        groupElement.querySelector('.toggle-icon').textContent = '▼';
-
-        // Show subcategories container if it exists
-        const subcategoriesContainer = groupElement.querySelector('.subcategories-container');
+        if (foldIcon) {
+            foldIcon.textContent = '▼';
+        }
+        if (todosList) {
+            todosList.style.display = 'block';
+        }
         if (subcategoriesContainer) {
             subcategoriesContainer.style.display = 'block';
         }
     } else {
         foldedCategories.add(categoryId);
         groupElement.classList.add('folded');
-        groupElement.querySelector('.toggle-icon').textContent = '▶';
-
-        // Hide subcategories container if it exists
-        const subcategoriesContainer = groupElement.querySelector('.subcategories-container');
+        if (foldIcon) {
+            foldIcon.textContent = '►';
+        }
+        if (todosList) {
+            todosList.style.display = 'none';
+        }
         if (subcategoriesContainer) {
             subcategoriesContainer.style.display = 'none';
         }
     }
+    
     saveFoldedState();
 }
 
