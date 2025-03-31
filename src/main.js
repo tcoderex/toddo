@@ -11,11 +11,13 @@ let draggedItemId = null; // The ID of the todo being dragged
 let placeholder = null; // Placeholder element
 let isGroupedByCategory = false;
 let foldedCategories = new Set();
-let sortBy = 'name'; // Default sort: 'name', 'category', 'date'
+let sortBy = 'name'; // Default sort: 'name', 'date'
 let sortDirection = 'asc'; // Default direction: 'asc', 'desc'
+let sortTarget = 'tasks'; // Default target: 'tasks', 'categories'
 
 // DOM elements
 let todoInput;
+let sortTargetButtons; // Button group for sort target (tasks or categories)
 let sortByButtons; // Button group for sort criteria
 let sortDirectionButtons; // Button group for sort direction
 let groupByToggle;
@@ -91,6 +93,19 @@ async function loadCategories() {
   try {
     console.log('Loading categories...');
     categories = await invoke('load_categories');
+
+    // Ensure all categories have a created_at property for sorting
+    categories = categories.map(category => {
+      if (!category.created_at) {
+        // If no created_at, use ID as a fallback (since it's likely a timestamp)
+        return {
+          ...category,
+          created_at: new Date(parseInt(category.id)).toISOString()
+        };
+      }
+      return category;
+    });
+
     console.log('Loaded categories:', categories);
     renderCategoryDropdown();
   } catch (error) {
@@ -121,7 +136,8 @@ function addCategory(name, color = getRandomColor(), parentId = null) {
     id: Date.now(),
     name: name.trim(),
     color: color,
-    parent_id: parentId
+    parent_id: parentId,
+    created_at: new Date().toISOString() // Add creation date for sorting
   };
 
   categories.push(newCategory);
@@ -406,23 +422,21 @@ function renderTodos() {
     return true;
   });
 
-  // 2. Sort filtered todos
-  filteredTodos.sort((a, b) => {
-    let compareA, compareB;
-    switch (sortBy) {
-      case 'name': compareA = a.text.toLowerCase(); compareB = b.text.toLowerCase(); break;
-      case 'date': compareA = a.created_at || ''; compareB = b.created_at || ''; break;
-      case 'category':
-        compareA = (a.category ? a.category.name.toLowerCase() : 'zzz'); // 'zzz' to sort uncategorized last
-        compareB = (b.category ? b.category.name.toLowerCase() : 'zzz');
-        break;
-      default: compareA = a.text.toLowerCase(); compareB = b.text.toLowerCase(); break;
-    }
-    let comparison = 0;
-    if (compareA > compareB) comparison = 1;
-    else if (compareA < compareB) comparison = -1;
-    return sortDirection === 'desc' ? (comparison * -1) : comparison;
-  });
+  // 2. Sort filtered todos - only if we're sorting tasks
+  if (sortTarget === 'tasks') {
+    filteredTodos.sort((a, b) => {
+      let compareA, compareB;
+      switch (sortBy) {
+        case 'name': compareA = a.text.toLowerCase(); compareB = b.text.toLowerCase(); break;
+        case 'date': compareA = a.created_at || ''; compareB = b.created_at || ''; break;
+        default: compareA = a.text.toLowerCase(); compareB = b.text.toLowerCase(); break;
+      }
+      let comparison = 0;
+      if (compareA > compareB) comparison = 1;
+      else if (compareA < compareB) comparison = -1;
+      return sortDirection === 'desc' ? (comparison * -1) : comparison;
+    });
+  }
 
   console.log('Sorted & Filtered todos:', filteredTodos.length);
 
@@ -447,14 +461,52 @@ function renderTodos() {
       rootCategoryIds.push('uncategorized');
     }
 
-    // Sort root categories
-    rootCategoryIds.sort((a, b) => {
-      if (a === 'uncategorized') return 1;
-      if (b === 'uncategorized') return -1;
-      const catA = categories.find(c => c.id.toString() === a)?.name || '';
-      const catB = categories.find(c => c.id.toString() === b)?.name || '';
-      return catA.localeCompare(catB);
-    });
+    // Sort root categories if we're sorting categories
+    if (sortTarget === 'categories') {
+      rootCategoryIds.sort((a, b) => {
+        // Always put uncategorized at the end regardless of sort direction
+        if (a === 'uncategorized') return 1;
+        if (b === 'uncategorized') return -1;
+
+        // Find the category objects
+        const categoryA = categories.find(c => c.id.toString() === a);
+        const categoryB = categories.find(c => c.id.toString() === b);
+
+        if (!categoryA || !categoryB) return 0;
+
+        let compareA, compareB;
+        switch (sortBy) {
+          case 'name':
+            compareA = categoryA.name.toLowerCase();
+            compareB = categoryB.name.toLowerCase();
+            break;
+          case 'date':
+            // If categories have a created_at property, use it; otherwise, use ID as a fallback
+            // (since ID is likely a timestamp from Date.now())
+            compareA = categoryA.created_at || categoryA.id.toString();
+            compareB = categoryB.created_at || categoryB.id.toString();
+            break;
+          default:
+            compareA = categoryA.name.toLowerCase();
+            compareB = categoryB.name.toLowerCase();
+            break;
+        }
+
+        let comparison = 0;
+        if (compareA > compareB) comparison = 1;
+        else if (compareA < compareB) comparison = -1;
+        return sortDirection === 'desc' ? (comparison * -1) : comparison;
+      });
+    } else {
+      // If we're not sorting categories, just sort alphabetically
+      rootCategoryIds.sort((a, b) => {
+        if (a === 'uncategorized') return 1;
+        if (b === 'uncategorized') return -1;
+        const catA = categories.find(c => c.id.toString() === a)?.name || '';
+        const catB = categories.find(c => c.id.toString() === b)?.name || '';
+        return catA.localeCompare(catB);
+      });
+    }
 
     // Render root categories and their subcategories
     rootCategoryIds.forEach(categoryId => {
@@ -529,7 +581,30 @@ function renderCategoryGroup(categoryId, groupedTodos, parentElement, level) {
   if (hasTodos) {
     const groupList = document.createElement('ul');
     groupList.className = 'category-group-list';
-    groupedTodos[categoryId].todos.forEach(todo => {
+
+    // Sort todos within the category
+    const todosToRender = [...groupedTodos[categoryId].todos];
+
+    // Only sort the todos if we're targeting tasks
+    if (sortTarget === 'tasks') {
+      todosToRender.sort((a, b) => {
+        let compareA, compareB;
+
+        switch (sortBy) {
+          case 'name': compareA = a.text.toLowerCase(); compareB = b.text.toLowerCase(); break;
+          case 'date': compareA = a.created_at || ''; compareB = b.created_at || ''; break;
+          default: compareA = a.text.toLowerCase(); compareB = b.text.toLowerCase(); break;
+        }
+
+        let comparison = 0;
+        if (compareA > compareB) comparison = 1;
+        else if (compareA < compareB) comparison = -1;
+        return sortDirection === 'desc' ? (comparison * -1) : comparison;
+      });
+    }
+
+    // Render the sorted todos
+    todosToRender.forEach(todo => {
       groupList.appendChild(createTodoElement(todo));
     });
 
@@ -558,12 +633,46 @@ function renderCategoryGroup(categoryId, groupedTodos, parentElement, level) {
     .map(cat => cat.id.toString());
 
   if (subcategoryIds.length > 0) {
-    // Sort subcategories by name
-    subcategoryIds.sort((a, b) => {
-      const catA = categories.find(c => c.id.toString() === a)?.name || '';
-      const catB = categories.find(c => c.id.toString() === b)?.name || '';
-      return catA.localeCompare(catB);
-    });
+    // Sort subcategories based on the sort target
+    if (sortTarget === 'categories') {
+      // Use the same sorting logic as for root categories
+      subcategoryIds.sort((a, b) => {
+        // Find the category objects
+        const categoryA = categories.find(c => c.id.toString() === a);
+        const categoryB = categories.find(c => c.id.toString() === b);
+
+        if (!categoryA || !categoryB) return 0;
+
+        let compareA, compareB;
+        switch (sortBy) {
+          case 'name':
+            compareA = categoryA.name.toLowerCase();
+            compareB = categoryB.name.toLowerCase();
+            break;
+          case 'date':
+            // If categories have a created_at property, use it; otherwise, use ID as a fallback
+            compareA = categoryA.created_at || categoryA.id.toString();
+            compareB = categoryB.created_at || categoryB.id.toString();
+            break;
+          default:
+            compareA = categoryA.name.toLowerCase();
+            compareB = categoryB.name.toLowerCase();
+            break;
+        }
+
+        let comparison = 0;
+        if (compareA > compareB) comparison = 1;
+        else if (compareA < compareB) comparison = -1;
+        return sortDirection === 'desc' ? (comparison * -1) : comparison;
+      });
+    } else {
+      // If not sorting categories, just sort alphabetically
+      subcategoryIds.sort((a, b) => {
+        const catA = categories.find(c => c.id.toString() === a)?.name || '';
+        const catB = categories.find(c => c.id.toString() === b)?.name || '';
+        return catA.localeCompare(catB);
+      });
+    }
 
     // Create a container for subcategories
     const subcategoriesContainer = document.createElement('div');
@@ -1111,17 +1220,23 @@ function saveFoldedState() {
 function loadSortState() {
     const storedSortBy = localStorage.getItem('sortBy');
     const storedSortDirection = localStorage.getItem('sortDirection');
+    const storedSortTarget = localStorage.getItem('sortTarget');
+
     sortBy = storedSortBy || 'name';
     // If the stored sort is 'position', change it to 'name' since position is removed
     if (sortBy === 'position') sortBy = 'name';
+
     sortDirection = storedSortDirection || 'asc';
-    console.log(`Loaded sort state: ${sortBy} ${sortDirection}`);
+    sortTarget = storedSortTarget || 'tasks';
+
+    console.log(`Loaded sort state: ${sortTarget} by ${sortBy} ${sortDirection}`);
 }
 
 function saveSortState() {
     localStorage.setItem('sortBy', sortBy);
     localStorage.setItem('sortDirection', sortDirection);
-    console.log(`Saved sort state: ${sortBy} ${sortDirection}`);
+    localStorage.setItem('sortTarget', sortTarget);
+    console.log(`Saved sort state: ${sortTarget} by ${sortBy} ${sortDirection}`);
 }
 
 
@@ -1145,6 +1260,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   dueDateInput = document.querySelector('#todo-due-date');
   categorySelect = document.getElementById('category-select');
   groupByToggle = document.getElementById('group-by-category-toggle');
+  sortTargetButtons = document.querySelectorAll('.sort-target-btn');
   sortByButtons = document.querySelectorAll('.sort-by-btn');
   sortDirectionButtons = document.querySelectorAll('.sort-direction-btn');
   viewTrashBtn = document.querySelector('#view-trash'); // Get trash button
@@ -1192,6 +1308,15 @@ window.addEventListener('DOMContentLoaded', async () => {
       });
   }
 
+  sortTargetButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      sortTarget = button.dataset.target;
+      saveSortState();
+      updateSortButtonsUI();
+      renderTodos();
+    });
+  });
+
   sortByButtons.forEach(button => {
     button.addEventListener('click', () => {
       sortBy = button.dataset.sort;
@@ -1211,6 +1336,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   });
 
   function updateSortButtonsUI() {
+    sortTargetButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.target === sortTarget));
     sortByButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.sort === sortBy));
     sortDirectionButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.direction === sortDirection));
   }
