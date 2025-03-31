@@ -1271,3 +1271,101 @@ ul.drag-over-active {
     font-size: 14px;
     margin-right: 5px;
 }
+
+/* Manage Categories Button */
+.manage-categories-group {
+  margin-left: auto;
+}
+
+#manage-categories-btn {
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#manage-categories-btn:hover {
+  background-color: #e0e0e0;
+}
+
+/* Category Management Modal */
+.categories-list {
+  max-height: 400px;
+  overflow-y: auto;
+  margin: 15px 0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 10px;
+}
+
+.category-item {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+  gap: 10px;
+}
+
+.category-item:last-child {
+  border-bottom: none;
+}
+
+.category-color-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.category-name {
+  flex-grow: 1;
+}
+
+.category-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.category-action-btn {
+  padding: 3px 8px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+.category-edit-btn {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.category-delete-btn {
+  background-color: #f44336;
+  color: white;
+}
+
+.category-management-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.action-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: #4CAF50;
+  color: white;
+  font-weight: bold;
+}
+
+.action-btn:hover {
+  opacity: 0.9;
+}
+
+.subcategory-item {
+  margin-left: 20px;
+  border-left: 2px solid #eee;
+}

@@ -1818,3 +1818,130 @@ function updateFloatingControlsUI() {
         });
     }
 }
+
+// Category Management Functions
+function openCategoryManagement() {
+  const modal = document.getElementById('category-management-modal');
+  modal.style.display = 'block';
+  renderCategoryList();
+}
+
+function renderCategoryList() {
+  const categoriesList = document.querySelector('.categories-list');
+  categoriesList.innerHTML = '';
+
+  // First render root categories
+  const rootCategories = categories.filter(c => !c.parent_id);
+  rootCategories.forEach(category => {
+    const categoryElement = createCategoryListItem(category);
+    categoriesList.appendChild(categoryElement);
+
+    // Then render its subcategories
+    const subcategories = categories.filter(c => c.parent_id === category.id);
+    subcategories.forEach(subcategory => {
+      const subcategoryElement = createCategoryListItem(subcategory, true);
+      categoriesList.appendChild(subcategoryElement);
+    });
+  });
+}
+
+function createCategoryListItem(category, isSubcategory = false) {
+  const item = document.createElement('div');
+  item.className = `category-item ${isSubcategory ? 'subcategory-item' : ''}`;
+
+  const colorDot = document.createElement('span');
+  colorDot.className = 'category-color-dot';
+  colorDot.style.backgroundColor = category.color;
+
+  const name = document.createElement('span');
+  name.className = 'category-name';
+  name.textContent = category.name;
+
+  const actions = document.createElement('div');
+  actions.className = 'category-actions';
+
+  const editBtn = document.createElement('button');
+  editBtn.className = 'category-action-btn category-edit-btn';
+  editBtn.textContent = '✎';
+  editBtn.onclick = () => editCategory(category);
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'category-action-btn category-delete-btn';
+  deleteBtn.textContent = '🗑️';
+  deleteBtn.onclick = () => deleteCategory(category.id);
+
+  actions.appendChild(editBtn);
+  actions.appendChild(deleteBtn);
+
+  item.appendChild(colorDot);
+  item.appendChild(name);
+  item.appendChild(actions);
+
+  return item;
+}
+
+function editCategory(category) {
+  // Reuse existing category modal
+  const modal = document.getElementById('category-modal');
+  document.getElementById('category-modal-title').textContent = 'Edit Category';
+  document.getElementById('category-name').value = category.name;
+  document.getElementById('category-color').value = category.color;
+  
+  if (category.parent_id) {
+    document.getElementById('parent-category-group').style.display = 'block';
+    document.getElementById('parent-category-select').value = category.parent_id;
+  } else {
+    document.getElementById('parent-category-group').style.display = 'none';
+  }
+
+  modal.dataset.editCategoryId = category.id;
+  modal.style.display = 'block';
+}
+
+function deleteCategory(categoryId) {
+  if (!confirm('Are you sure you want to delete this category? All todos in this category will become uncategorized.')) {
+    return;
+  }
+
+  // Update todos that use this category
+  todos.forEach(todo => {
+    if (todo.category && todo.category.id === categoryId) {
+      todo.category = null;
+    }
+  });
+
+  // Remove the category and its subcategories
+  categories = categories.filter(c => c.id !== categoryId && c.parent_id !== categoryId);
+  
+  saveCategories();
+  saveTodos();
+  renderCategoryList();
+  renderTodos();
+}
+
+// Add event listeners
+document.getElementById('manage-categories-btn').addEventListener('click', openCategoryManagement);
+
+document.querySelector('#category-management-modal .close').addEventListener('click', () => {
+  document.getElementById('category-management-modal').style.display = 'none';
+});
+
+document.getElementById('add-category-btn').addEventListener('click', () => {
+  const modal = document.getElementById('category-modal');
+  document.getElementById('category-modal-title').textContent = 'Add New Category';
+  document.getElementById('parent-category-group').style.display = 'none';
+  document.getElementById('category-name').value = '';
+  document.getElementById('category-color').value = getRandomColor();
+  delete modal.dataset.editCategoryId;
+  modal.style.display = 'block';
+});
+
+document.getElementById('add-subcategory-btn').addEventListener('click', () => {
+  const modal = document.getElementById('category-modal');
+  document.getElementById('category-modal-title').textContent = 'Add New Subcategory';
+  document.getElementById('parent-category-group').style.display = 'block';
+  document.getElementById('category-name').value = '';
+  document.getElementById('category-color').value = getRandomColor();
+  delete modal.dataset.editCategoryId;
+  modal.style.display = 'block';
+});

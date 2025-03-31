@@ -45,6 +45,12 @@
             <button type="button" class="control-btn sort-target-btn active" data-target="tasks">Tasks</button>
             <button type="button" class="control-btn sort-target-btn" data-target="categories">Categories</button>
           </div>
+          <!-- Add the manage categories button here -->
+          <div class="control-group manage-categories-group">
+            <button type="button" id="manage-categories-btn" class="control-btn">
+              🗂️ Manage Categories
+            </button>
+          </div>
           <div class="sort-controls-wrapper">
             <div class="control-group sort-by-group">
               <span class="control-label">By:</span>
@@ -85,6 +91,25 @@
               <select id="parent-category-select"></select>
             </div>
             <button type="button" id="save-category-btn">Save Category</button>
+          </div>
+        </div>
+
+        <!-- Category Management Modal -->
+        <div id="category-management-modal" class="modal">
+          <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Manage Categories</h2>
+            <div class="categories-list">
+              <!-- Categories will be rendered here -->
+            </div>
+            <div class="category-management-actions">
+              <button type="button" id="add-category-btn" class="action-btn">
+                + Add Category
+              </button>
+              <button type="button" id="add-subcategory-btn" class="action-btn">
+                + Add Subcategory
+              </button>
+            </div>
           </div>
         </div>
       </div>
