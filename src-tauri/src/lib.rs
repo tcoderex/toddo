@@ -12,6 +12,7 @@ struct Category {
     id: u64, // Using u64 consistent with Todo id from JS Date.now()
     name: String,
     color: String,
+    parent_id: Option<u64>, // Parent category ID for subcategories
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

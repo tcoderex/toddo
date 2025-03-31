@@ -114,13 +114,14 @@ async function saveCategories() {
 
 
 // Add a new category and save
-function addCategory(name, color = getRandomColor()) {
+function addCategory(name, color = getRandomColor(), parentId = null) {
   if (name.trim() === '') return;
 
   const newCategory = {
     id: Date.now(),
     name: name.trim(),
-    color: color
+    color: color,
+    parent_id: parentId
   };
 
   categories.push(newCategory);
@@ -149,7 +150,17 @@ function getContrastColor(hexColor) {
   return luminance > 0.5 ? '#000000' : '#ffffff';
 }
 
-// Render the category dropdown
+// Get all root categories (those without a parent)
+function getRootCategories() {
+  return categories.filter(category => !category.parent_id);
+}
+
+// Get subcategories for a given parent category ID
+function getSubcategories(parentId) {
+  return categories.filter(category => category.parent_id === parentId);
+}
+
+// Render the category dropdown with hierarchy
 function renderCategoryDropdown() {
   const categorySelect = document.getElementById('category-select');
   if (!categorySelect) return;
@@ -161,12 +172,13 @@ function renderCategoryDropdown() {
   defaultOption.textContent = 'Select a category (optional)';
   categorySelect.appendChild(defaultOption);
 
-  categories.forEach(category => {
-    const option = document.createElement('option');
-    option.value = category.id;
-    option.textContent = category.name;
-    option.style.color = category.color;
-    categorySelect.appendChild(option);
+  // Add root categories first
+  const rootCategories = getRootCategories();
+  rootCategories.forEach(category => {
+    addCategoryOption(categorySelect, category, 0);
+
+    // Add subcategories recursively
+    addSubcategoryOptions(categorySelect, category.id, 1);
   });
 
   const newOption = document.createElement('option');
@@ -174,10 +186,41 @@ function renderCategoryDropdown() {
   newOption.textContent = '+ Add new category';
   categorySelect.appendChild(newOption);
 
+  const newSubOption = document.createElement('option');
+  newSubOption.value = 'new-sub';
+  newSubOption.textContent = '+ Add new subcategory';
+  categorySelect.appendChild(newSubOption);
+
   // Try to restore previous selection
   if (categories.some(c => c.id.toString() === currentVal)) {
       categorySelect.value = currentVal;
   }
+}
+
+// Helper function to add a category option to the select element
+function addCategoryOption(selectElement, category, level) {
+  const option = document.createElement('option');
+  option.value = category.id;
+
+  // Add indentation based on level
+  const indent = '\u00A0\u00A0'.repeat(level); // Non-breaking spaces for indentation
+  const prefix = level > 0 ? '└─ ' : '';
+  option.textContent = indent + prefix + category.name;
+
+  option.style.color = category.color;
+  option.dataset.level = level;
+  option.dataset.parentId = category.parent_id || '';
+  selectElement.appendChild(option);
+}
+
+// Recursively add subcategory options
+function addSubcategoryOptions(selectElement, parentId, level) {
+  const subcategories = getSubcategories(parentId);
+  subcategories.forEach(subcategory => {
+    addCategoryOption(selectElement, subcategory, level);
+    // Recursively add children of this subcategory
+    addSubcategoryOptions(selectElement, subcategory.id, level + 1);
+  });
 }
 
 // Add a new todo
@@ -390,65 +433,149 @@ function renderTodos() {
       return acc;
     }, {});
 
-    const sortedGroupKeys = Object.keys(groupedTodos).sort((a, b) => {
-        if (a === 'uncategorized') return 1;
-        if (b === 'uncategorized') return -1;
-        const catA = groupedTodos[a].category?.name || '';
-        const catB = groupedTodos[b].category?.name || '';
-        return catA.localeCompare(catB);
+    // Get all root categories first
+    const rootCategoryIds = categories
+      .filter(cat => !cat.parent_id)
+      .map(cat => cat.id.toString());
+
+    // Add 'uncategorized' to the list of root categories
+    if (groupedTodos['uncategorized']) {
+      rootCategoryIds.push('uncategorized');
+    }
+
+    // Sort root categories
+    rootCategoryIds.sort((a, b) => {
+      if (a === 'uncategorized') return 1;
+      if (b === 'uncategorized') return -1;
+      const catA = categories.find(c => c.id.toString() === a)?.name || '';
+      const catB = categories.find(c => c.id.toString() === b)?.name || '';
+      return catA.localeCompare(catB);
     });
 
-    sortedGroupKeys.forEach(categoryId => {
-      const groupData = groupedTodos[categoryId];
-      const category = groupData.category;
-      const categoryName = category ? category.name : 'Uncategorized';
-      const categoryColor = category ? category.color : '#cccccc';
-
-      const groupDiv = document.createElement('div');
-      groupDiv.className = 'category-group';
-      groupDiv.dataset.categoryId = categoryId;
-
-      const header = document.createElement('div');
-      header.className = 'category-group-header';
-      const colorIndicator = document.createElement('span');
-      colorIndicator.className = 'category-color-indicator';
-      colorIndicator.style.backgroundColor = categoryColor;
-      const nameSpan = document.createElement('span');
-      nameSpan.className = 'category-name';
-      nameSpan.textContent = categoryName;
-      const toggleIcon = document.createElement('span');
-      toggleIcon.className = 'toggle-icon';
-      toggleIcon.textContent = foldedCategories.has(categoryId) ? '▶' : '▼';
-      header.appendChild(colorIndicator);
-      header.appendChild(nameSpan);
-      header.appendChild(toggleIcon);
-
-      const groupList = document.createElement('ul');
-      groupList.className = 'category-group-list';
-      groupData.todos.forEach(todo => groupList.appendChild(createTodoElement(todo)));
-
-      addDragDropListenersToList(groupList); // Add listeners to this specific UL
-
-      if (foldedCategories.has(categoryId)) {
-        groupDiv.classList.add('folded');
-      }
-
-      header.addEventListener('click', () => toggleCategoryFold(categoryId, groupDiv));
-      groupDiv.appendChild(header);
-      groupDiv.appendChild(groupList);
-      todoList.appendChild(groupDiv);
+    // Render root categories and their subcategories
+    rootCategoryIds.forEach(categoryId => {
+      renderCategoryGroup(categoryId, groupedTodos, todoList, 0);
     });
   } else {
     // Flat List Rendering
-    const flatListUl = document.createElement('ul'); // Create a single UL for the flat list
+    const flatListUl = document.createElement('ul');
     filteredTodos.forEach(todo => flatListUl.appendChild(createTodoElement(todo)));
-    addDragDropListenersToList(flatListUl); // Add listeners to the single UL
-    todoList.appendChild(flatListUl); // Append the UL to the main container
+    addDragDropListenersToList(flatListUl);
+    todoList.appendChild(flatListUl);
   }
 
   // Update items left count
   const activeCount = todos.filter(todo => !todo.completed).length;
   itemsLeftSpan.textContent = `${activeCount} item${activeCount !== 1 ? 's' : ''} left`;
+}
+
+// Render a category group with its todos and subcategories
+function renderCategoryGroup(categoryId, groupedTodos, parentElement, level) {
+  // Skip if this category has no todos and no subcategories
+  const hasSubcategories = categories.some(cat => cat.parent_id === parseInt(categoryId));
+  const hasTodos = groupedTodos[categoryId] && groupedTodos[categoryId].todos.length > 0;
+
+  if (!hasTodos && !hasSubcategories) return;
+
+  // Get category data
+  let category = null;
+  let categoryName = 'Uncategorized';
+  let categoryColor = '#cccccc';
+
+  if (categoryId !== 'uncategorized') {
+    category = categories.find(c => c.id.toString() === categoryId);
+    if (category) {
+      categoryName = category.name;
+      categoryColor = category.color;
+    }
+  }
+
+  // Create category group container
+  const groupDiv = document.createElement('div');
+  groupDiv.className = 'category-group';
+  groupDiv.dataset.categoryId = categoryId;
+  groupDiv.dataset.level = level;
+
+  if (level > 0) {
+    groupDiv.classList.add('subcategory');
+    groupDiv.style.marginLeft = `${level * 20}px`; // Indent subcategories
+  }
+
+  // Create header
+  const header = document.createElement('div');
+  header.className = 'category-group-header';
+
+  const colorIndicator = document.createElement('span');
+  colorIndicator.className = 'category-color-indicator';
+  colorIndicator.style.backgroundColor = categoryColor;
+
+  const nameSpan = document.createElement('span');
+  nameSpan.className = 'category-name';
+  nameSpan.textContent = categoryName;
+
+  const toggleIcon = document.createElement('span');
+  toggleIcon.className = 'toggle-icon';
+  toggleIcon.textContent = foldedCategories.has(categoryId) ? '▶' : '▼';
+
+  header.appendChild(colorIndicator);
+  header.appendChild(nameSpan);
+  header.appendChild(toggleIcon);
+
+  // Create todo list if this category has todos
+  if (hasTodos) {
+    const groupList = document.createElement('ul');
+    groupList.className = 'category-group-list';
+    groupedTodos[categoryId].todos.forEach(todo => {
+      groupList.appendChild(createTodoElement(todo));
+    });
+
+    addDragDropListenersToList(groupList);
+
+    if (foldedCategories.has(categoryId)) {
+      groupDiv.classList.add('folded');
+    }
+
+    groupDiv.appendChild(header);
+    groupDiv.appendChild(groupList);
+  } else {
+    // If no todos, just add the header
+    groupDiv.appendChild(header);
+  }
+
+  // Add to parent element
+  parentElement.appendChild(groupDiv);
+
+  // Add click handler for folding/unfolding
+  header.addEventListener('click', () => toggleCategoryFold(categoryId, groupDiv));
+
+  // Recursively render subcategories
+  const subcategoryIds = categories
+    .filter(cat => cat.parent_id === parseInt(categoryId))
+    .map(cat => cat.id.toString());
+
+  if (subcategoryIds.length > 0) {
+    // Sort subcategories by name
+    subcategoryIds.sort((a, b) => {
+      const catA = categories.find(c => c.id.toString() === a)?.name || '';
+      const catB = categories.find(c => c.id.toString() === b)?.name || '';
+      return catA.localeCompare(catB);
+    });
+
+    // Create a container for subcategories
+    const subcategoriesContainer = document.createElement('div');
+    subcategoriesContainer.className = 'subcategories-container';
+
+    if (foldedCategories.has(categoryId)) {
+      subcategoriesContainer.style.display = 'none';
+    }
+
+    groupDiv.appendChild(subcategoriesContainer);
+
+    // Render each subcategory
+    subcategoryIds.forEach(subCategoryId => {
+      renderCategoryGroup(subCategoryId, groupedTodos, subcategoriesContainer, level + 1);
+    });
+  }
 }
 
 // Toggle category fold state
@@ -458,10 +585,22 @@ function toggleCategoryFold(categoryId, groupElement) {
         foldedCategories.delete(categoryId);
         groupElement.classList.remove('folded');
         groupElement.querySelector('.toggle-icon').textContent = '▼';
+
+        // Show subcategories container if it exists
+        const subcategoriesContainer = groupElement.querySelector('.subcategories-container');
+        if (subcategoriesContainer) {
+            subcategoriesContainer.style.display = 'block';
+        }
     } else {
         foldedCategories.add(categoryId);
         groupElement.classList.add('folded');
         groupElement.querySelector('.toggle-icon').textContent = '▶';
+
+        // Hide subcategories container if it exists
+        const subcategoriesContainer = groupElement.querySelector('.subcategories-container');
+        if (subcategoriesContainer) {
+            subcategoriesContainer.style.display = 'none';
+        }
     }
     saveFoldedState();
 }
@@ -516,6 +655,11 @@ function editTodo(id) {
   newOption.textContent = '+ Add new category';
   categorySelectEdit.appendChild(newOption);
 
+  const newSubOption = document.createElement('option');
+  newSubOption.value = 'new-sub';
+  newSubOption.textContent = '+ Add new subcategory';
+  categorySelectEdit.appendChild(newSubOption);
+
   const saveBtn = document.createElement('button');
   saveBtn.type = 'submit';
   saveBtn.className = 'todo-edit-save';
@@ -539,13 +683,43 @@ function editTodo(id) {
   editForm.appendChild(cancelBtn); // Add cancel button to form
 
   categorySelectEdit.addEventListener('change', (e) => {
+    const modal = document.getElementById('category-modal');
     if (e.target.value === 'new') {
-      document.getElementById('category-modal').style.display = 'block';
-      document.getElementById('category-modal').dataset.editFormId = id;
-      document.getElementById('category-modal').dataset.editText = textInput.value;
-      document.getElementById('category-modal').dataset.editDueDate = dueDateInput.value || '';
+      // Regular category
+      document.getElementById('category-modal-title').textContent = 'Add New Category';
+      document.getElementById('parent-category-group').style.display = 'none';
+      modal.dataset.isSubcategory = 'false';
+      modal.dataset.editFormId = id;
+      modal.dataset.editText = textInput.value;
+      modal.dataset.editDueDate = dueDateInput.value || '';
       // Optionally hide the edit form while modal is open
       editForm.style.display = 'none';
+      modal.style.display = 'block';
+    } else if (e.target.value === 'new-sub') {
+      // Subcategory
+      document.getElementById('category-modal-title').textContent = 'Add New Subcategory';
+      document.getElementById('parent-category-group').style.display = 'block';
+      modal.dataset.isSubcategory = 'true';
+      modal.dataset.editFormId = id;
+      modal.dataset.editText = textInput.value;
+      modal.dataset.editDueDate = dueDateInput.value || '';
+
+      // Populate parent category dropdown
+      const parentSelect = document.getElementById('parent-category-select');
+      parentSelect.innerHTML = '';
+
+      // Add all categories as potential parents
+      categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category.id;
+        option.textContent = category.name;
+        option.style.color = category.color;
+        parentSelect.appendChild(option);
+      });
+
+      // Optionally hide the edit form while modal is open
+      editForm.style.display = 'none';
+      modal.style.display = 'block';
     }
   });
 
@@ -800,7 +974,7 @@ function handleDrop(e) {
 }
 
 
-function handleDragEnd(e) {
+function handleDragEnd() {
     console.log(`Drag End: ID ${draggedItemId}`);
     // Cleanup is important regardless of whether drop was successful
     cleanupDragState();
@@ -962,8 +1136,33 @@ window.addEventListener('DOMContentLoaded', async () => {
   }
 
   categorySelect.addEventListener('change', (e) => {
+    const modal = document.getElementById('category-modal');
     if (e.target.value === 'new') {
-      document.getElementById('category-modal').style.display = 'block';
+      // Regular category
+      document.getElementById('category-modal-title').textContent = 'Add New Category';
+      document.getElementById('parent-category-group').style.display = 'none';
+      modal.dataset.isSubcategory = 'false';
+      modal.style.display = 'block';
+    } else if (e.target.value === 'new-sub') {
+      // Subcategory
+      document.getElementById('category-modal-title').textContent = 'Add New Subcategory';
+      document.getElementById('parent-category-group').style.display = 'block';
+      modal.dataset.isSubcategory = 'true';
+
+      // Populate parent category dropdown
+      const parentSelect = document.getElementById('parent-category-select');
+      parentSelect.innerHTML = '';
+
+      // Add all categories as potential parents
+      categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category.id;
+        option.textContent = category.name;
+        option.style.color = category.color;
+        parentSelect.appendChild(option);
+      });
+
+      modal.style.display = 'block';
     }
   });
 
@@ -988,12 +1187,22 @@ window.addEventListener('DOMContentLoaded', async () => {
     const categoryName = document.getElementById('category-name').value;
     const categoryColor = document.getElementById('category-color').value;
     const modal = document.getElementById('category-modal');
+    const isSubcategory = modal.dataset.isSubcategory === 'true';
 
     if (categoryName.trim() === '') {
       alert('Please enter a category name'); return;
     }
 
-    const newCategory = addCategory(categoryName, categoryColor);
+    let parentId = null;
+    if (isSubcategory) {
+      const parentSelect = document.getElementById('parent-category-select');
+      parentId = parseInt(parentSelect.value);
+      if (!parentId) {
+        alert('Please select a parent category'); return;
+      }
+    }
+
+    const newCategory = addCategory(categoryName, categoryColor, parentId);
     modal.style.display = 'none';
     document.getElementById('category-name').value = ''; // Reset modal form
 

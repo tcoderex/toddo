@@ -147,16 +147,17 @@ h1 {
   font-weight: bold;
 }
 
-/* Specific group adjustments if needed */
+/* Specific group adjustments if needed - uncomment and add styles as needed
 .group-toggle-group {
-  /* Add specific styles if needed */
+  margin-right: 10px;
 }
 .sort-by-group {
- /* Add specific styles if needed */
+  margin-right: 10px;
 }
 .sort-direction-group {
- /* Add specific styles if needed */
+  margin-right: 10px;
 }
+*/
 
 .control-btn {
     background-color: #f0f0f0;
@@ -381,6 +382,14 @@ h1 {
   overflow: hidden; /* Contain children */
 }
 
+/* Subcategory styling */
+.category-group.subcategory {
+  margin-bottom: 10px;
+  margin-left: 20px; /* Default indent, overridden by inline style */
+  border-left: 2px solid #e0e0e0;
+  border-radius: 0 5px 5px 0;
+}
+
 .category-group-header {
   display: flex;
   align-items: center;
@@ -390,10 +399,15 @@ h1 {
   border-bottom: 1px solid #e0e0e0;
 }
 
-.category-group.folded .category-group-header {
-    border-bottom: none; /* No border when folded */
+/* Subcategory header styling */
+.subcategory .category-group-header {
+  background-color: #fafafa;
+  padding: 8px 15px;
 }
 
+.category-group.folded .category-group-header {
+  border-bottom: none; /* No border when folded */
+}
 
 .category-color-indicator {
   width: 12px;
@@ -403,10 +417,29 @@ h1 {
   flex-shrink: 0; /* Prevent shrinking */
 }
 
+/* Smaller indicator for subcategories */
+.subcategory .category-color-indicator {
+  width: 10px;
+  height: 10px;
+}
+
 .category-name {
   font-weight: bold;
   color: #444;
   flex-grow: 1; /* Take available space */
+}
+
+/* Subcategory name styling */
+.subcategory .category-name {
+  font-weight: normal;
+  font-size: 0.95em;
+}
+
+/* Container for subcategories */
+.subcategories-container {
+  padding-left: 0;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 .toggle-icon {
@@ -416,9 +449,11 @@ h1 {
   transition: transform 0.2s ease;
 }
 
+/* Uncomment if you want to rotate the toggle icon
 .category-group.folded .toggle-icon {
-    /* transform: rotate(-90deg); */ /* Keep simple arrows for now */
+    transform: rotate(-90deg);
 }
+*/
 
 .category-group-list {
   /* list-style: none; */ /* Already set above */

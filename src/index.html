@@ -66,7 +66,7 @@
         <div id="category-modal" class="modal">
           <div class="modal-content">
             <span class="close">&times;</span>
-            <h2>Add New Category</h2>
+            <h2 id="category-modal-title">Add New Category</h2>
             <div class="form-group">
               <label for="category-name">Category Name:</label>
               <input type="text" id="category-name" placeholder="Enter category name" />
@@ -74,6 +74,10 @@
             <div class="form-group">
               <label for="category-color">Category Color:</label>
               <input type="color" id="category-color" value="#55aaff" />
+            </div>
+            <div class="form-group" id="parent-category-group">
+              <label for="parent-category-select">Parent Category (optional):</label>
+              <select id="parent-category-select"></select>
             </div>
             <button type="button" id="save-category-btn">Save Category</button>
           </div>
