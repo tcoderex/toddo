@@ -11,7 +11,7 @@ let draggedItemId = null; // The ID of the todo being dragged
 let placeholder = null; // Placeholder element
 let isGroupedByCategory = false;
 let foldedCategories = new Set();
-let sortBy = 'position'; // Default sort: 'position', 'name', 'date'
+let sortBy = 'name'; // Default sort: 'name', 'category', 'date'
 let sortDirection = 'asc'; // Default direction: 'asc', 'desc'
 
 // DOM elements
@@ -412,7 +412,11 @@ function renderTodos() {
     switch (sortBy) {
       case 'name': compareA = a.text.toLowerCase(); compareB = b.text.toLowerCase(); break;
       case 'date': compareA = a.created_at || ''; compareB = b.created_at || ''; break;
-      case 'position': default: compareA = a.position; compareB = b.position; break;
+      case 'category':
+        compareA = (a.category ? a.category.name.toLowerCase() : 'zzz'); // 'zzz' to sort uncategorized last
+        compareB = (b.category ? b.category.name.toLowerCase() : 'zzz');
+        break;
+      default: compareA = a.text.toLowerCase(); compareB = b.text.toLowerCase(); break;
     }
     let comparison = 0;
     if (compareA > compareB) comparison = 1;
@@ -682,9 +686,32 @@ function editTodo(id) {
   editForm.appendChild(saveBtn);
   editForm.appendChild(cancelBtn); // Add cancel button to form
 
+  // Create color picker for category (initially hidden)
+  const categoryColorContainer = document.createElement('div');
+  categoryColorContainer.className = 'category-color-container';
+  categoryColorContainer.style.display = 'none';
+  categoryColorContainer.style.marginTop = '5px';
+
+  const colorLabel = document.createElement('label');
+  colorLabel.textContent = 'Category Color:';
+  colorLabel.style.display = 'block';
+  colorLabel.style.marginBottom = '5px';
+  categoryColorContainer.appendChild(colorLabel);
+
+  const colorInput = document.createElement('input');
+  colorInput.type = 'color';
+  colorInput.className = 'category-color-edit';
+  colorInput.value = todo.category ? todo.category.color : '#55aaff';
+  categoryColorContainer.appendChild(colorInput);
+
+  // Insert color picker after category select
+  editForm.insertBefore(categoryColorContainer, saveBtn);
+
   categorySelectEdit.addEventListener('change', (e) => {
     const modal = document.getElementById('category-modal');
-    if (e.target.value === 'new') {
+    const selectedValue = e.target.value;
+
+    if (selectedValue === 'new') {
       // Regular category
       document.getElementById('category-modal-title').textContent = 'Add New Category';
       document.getElementById('parent-category-group').style.display = 'none';
@@ -695,7 +722,7 @@ function editTodo(id) {
       // Optionally hide the edit form while modal is open
       editForm.style.display = 'none';
       modal.style.display = 'block';
-    } else if (e.target.value === 'new-sub') {
+    } else if (selectedValue === 'new-sub') {
       // Subcategory
       document.getElementById('category-modal-title').textContent = 'Add New Subcategory';
       document.getElementById('parent-category-group').style.display = 'block';
@@ -720,14 +747,31 @@ function editTodo(id) {
       // Optionally hide the edit form while modal is open
       editForm.style.display = 'none';
       modal.style.display = 'block';
+    } else if (selectedValue !== '') {
+      // Show color picker when a category is selected
+      categoryColorContainer.style.display = 'block';
+      // Set the color picker to the selected category's color
+      const selectedCategory = categories.find(c => c.id.toString() === selectedValue);
+      if (selectedCategory) {
+        colorInput.value = selectedCategory.color;
+      }
+    } else {
+      // Hide color picker when no category is selected
+      categoryColorContainer.style.display = 'none';
     }
   });
+
+  // Show color picker if a category is already selected
+  if (todo.category) {
+    categoryColorContainer.style.display = 'block';
+  }
 
   editForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const newText = textInput.value;
     const newDueDate = dueDateInput.value ? dueDateInput.value : null;
     const newCategoryId = categorySelectEdit.value;
+    const newCategoryColor = colorInput.value;
 
     if (newCategoryId === 'new') {
       // Modal handling logic (already present)
@@ -736,9 +780,13 @@ function editTodo(id) {
        document.getElementById('category-modal').dataset.editText = newText;
        document.getElementById('category-modal').dataset.editDueDate = newDueDate || '';
        editForm.style.display = 'none'; // Hide form
-    } else {
-      updateTodo(id, newText, newDueDate, newCategoryId);
+    } else if (newCategoryId !== '' && newCategoryId !== 'new-sub') {
+      // Update the category color if a category is selected and color is changed
+      updateTodo(id, newText, newDueDate, newCategoryId, newCategoryColor);
       // renderTodos() is called within updateTodo
+    } else {
+      // No category selected
+      updateTodo(id, newText, newDueDate, newCategoryId);
     }
   });
 
@@ -747,7 +795,7 @@ function editTodo(id) {
 }
 
 // Update a todo
-function updateTodo(id, text, dueDate, categoryId) {
+function updateTodo(id, text, dueDate, categoryId, categoryColor) {
   if (text.trim() === '') {
       // Optionally re-render to cancel edit if text is empty
       renderTodos();
@@ -757,6 +805,23 @@ function updateTodo(id, text, dueDate, categoryId) {
   let category = null;
   if (categoryId && categoryId !== 'new' && categoryId !== '') {
     category = categories.find(c => c.id.toString() === categoryId.toString());
+
+    // If a new color was provided and it's different from the current category color, update it
+    if (category && categoryColor && category.color !== categoryColor) {
+      // Update the category color in the categories array
+      categories = categories.map(c => {
+        if (c.id === category.id) {
+          return { ...c, color: categoryColor };
+        }
+        return c;
+      });
+
+      // Save the updated categories
+      saveCategories();
+
+      // Update the local category reference with the new color
+      category.color = categoryColor;
+    }
   }
 
   todos = todos.map(todo => {
@@ -1033,7 +1098,9 @@ function saveFoldedState() {
 function loadSortState() {
     const storedSortBy = localStorage.getItem('sortBy');
     const storedSortDirection = localStorage.getItem('sortDirection');
-    sortBy = storedSortBy || 'position';
+    sortBy = storedSortBy || 'name';
+    // If the stored sort is 'position', change it to 'name' since position is removed
+    if (sortBy === 'position') sortBy = 'name';
     sortDirection = storedSortDirection || 'asc';
     console.log(`Loaded sort state: ${sortBy} ${sortDirection}`);
 }
