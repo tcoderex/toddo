@@ -54,12 +54,29 @@ let trashedTodos = [];
 let trashListElement;
 let emptyTrashBtn;
 let closeTrashBtn;
+let sortButtons;
+let selectAllBtn;
+let deselectAllBtn;
+let deleteSelectedBtn;
+let restoreSelectedBtn;
+let selectedCountSpan;
+
+// Track selected items and current sort
+let selectedItems = new Set();
+let currentSort = 'date-desc'; // Default sort
 
 // Load and render trash items when the window loads
 window.addEventListener('DOMContentLoaded', async () => {
+    // Get DOM elements
     trashListElement = document.getElementById('trash-list');
     emptyTrashBtn = document.getElementById('empty-trash');
     closeTrashBtn = document.getElementById('close-trash-window');
+    sortButtons = document.querySelectorAll('.trash-sort-btn');
+    selectAllBtn = document.getElementById('select-all-btn');
+    deselectAllBtn = document.getElementById('deselect-all-btn');
+    deleteSelectedBtn = document.getElementById('delete-selected');
+    restoreSelectedBtn = document.getElementById('restore-selected');
+    selectedCountSpan = document.getElementById('selected-count');
 
     if (!trashListElement || !emptyTrashBtn) {
         console.error('Required elements not found in trash.html');
@@ -85,6 +102,59 @@ window.addEventListener('DOMContentLoaded', async () => {
                 window.close();
             }
         });
+    }
+
+    // Add event listeners for sort buttons
+    sortButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Update active button
+            sortButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+
+            // Update current sort
+            currentSort = button.dataset.sort;
+
+            // Re-render the list with the new sort
+            renderTrashList();
+        });
+    });
+
+    // Add event listeners for selection buttons
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', () => {
+            // Select all items
+            const checkboxes = document.querySelectorAll('.trash-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+                const itemId = checkbox.dataset.id;
+                if (itemId) {
+                    selectedItems.add(itemId);
+                    checkbox.closest('.trash-item')?.classList.add('selected');
+                }
+            });
+            updateSelectionUI();
+        });
+    }
+
+    if (deselectAllBtn) {
+        deselectAllBtn.addEventListener('click', () => {
+            // Deselect all items
+            const checkboxes = document.querySelectorAll('.trash-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+                checkbox.closest('.trash-item')?.classList.remove('selected');
+            });
+            selectedItems.clear();
+            updateSelectionUI();
+        });
+    }
+
+    if (deleteSelectedBtn) {
+        deleteSelectedBtn.addEventListener('click', handleDeleteSelected);
+    }
+
+    if (restoreSelectedBtn) {
+        restoreSelectedBtn.addEventListener('click', handleRestoreSelected);
     }
 
     // Listen for messages from the main window
@@ -146,20 +216,62 @@ function renderTrashList() {
     if (trashedTodos.length === 0) {
         trashListElement.innerHTML = '<li class="empty-trash-message"><span class="material-icons">delete_outline</span> Trash is empty.</li>';
         emptyTrashBtn.disabled = true;
+        // Reset selection
+        selectedItems.clear();
+        updateSelectionUI();
         return;
     }
 
-    // Sort by trashed date (newest first)
+    // Sort the trash items based on the current sort option
     const sortedTrash = [...trashedTodos].sort((a, b) => {
+        const [sortBy, sortDirection] = currentSort.split('-');
+
+        if (sortBy === 'date') {
+            const dateA = a.trashedAt ? new Date(a.trashedAt).getTime() : 0;
+            const dateB = b.trashedAt ? new Date(b.trashedAt).getTime() : 0;
+            return sortDirection === 'desc' ? dateB - dateA : dateA - dateB;
+        } else if (sortBy === 'name') {
+            const nameA = a.text ? a.text.toLowerCase() : '';
+            const nameB = b.text ? b.text.toLowerCase() : '';
+            return sortDirection === 'desc'
+                ? nameB.localeCompare(nameA)
+                : nameA.localeCompare(nameB);
+        }
+
+        // Default to date descending
         const dateA = a.trashedAt ? new Date(a.trashedAt).getTime() : 0;
         const dateB = b.trashedAt ? new Date(b.trashedAt).getTime() : 0;
-        return dateB - dateA; // Newest first
+        return dateB - dateA;
     });
 
     // Create list items
     sortedTrash.forEach(todo => {
         const li = document.createElement('li');
-        li.className = 'trash-item'; // Reuse class from main styles if applicable
+        li.className = 'trash-item';
+        if (selectedItems.has(todo.id.toString())) {
+            li.classList.add('selected');
+        }
+
+        // Create checkbox for selection
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'trash-checkbox';
+        checkbox.dataset.id = todo.id;
+        checkbox.checked = selectedItems.has(todo.id.toString());
+        checkbox.addEventListener('change', () => {
+            if (checkbox.checked) {
+                selectedItems.add(todo.id.toString());
+                li.classList.add('selected');
+            } else {
+                selectedItems.delete(todo.id.toString());
+                li.classList.remove('selected');
+            }
+            updateSelectionUI();
+        });
+
+        // Create content container
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'trash-item-content';
 
         const textSpan = document.createElement('span');
         textSpan.className = 'trash-text';
@@ -174,40 +286,125 @@ function renderTrashList() {
             dateSpan.textContent = 'Trashed: Invalid Date';
         }
 
+        contentDiv.appendChild(textSpan);
+        contentDiv.appendChild(dateSpan);
 
         const restoreBtn = document.createElement('button');
         restoreBtn.type = 'button';
-        restoreBtn.className = 'trash-restore'; // Reuse class
+        restoreBtn.className = 'trash-restore';
         restoreBtn.innerHTML = '<span class="material-icons">restore</span> Restore';
         restoreBtn.title = 'Restore Item';
         restoreBtn.addEventListener('click', () => handleRestore(todo.id));
 
         const deleteBtn = document.createElement('button');
         deleteBtn.type = 'button';
-        deleteBtn.className = 'trash-delete'; // Reuse class
+        deleteBtn.className = 'trash-delete';
         deleteBtn.innerHTML = '<span class="material-icons">delete_forever</span> Delete';
         deleteBtn.title = 'Delete Permanently';
         deleteBtn.addEventListener('click', () => handleDelete(todo.id));
 
-        const buttonContainer = document.createElement('div'); // Container for buttons
+        const buttonContainer = document.createElement('div');
         buttonContainer.className = 'trash-item-actions';
         buttonContainer.appendChild(restoreBtn);
         buttonContainer.appendChild(deleteBtn);
 
-        li.appendChild(textSpan);
-        li.appendChild(dateSpan);
+        li.appendChild(checkbox);
+        li.appendChild(contentDiv);
         li.appendChild(buttonContainer);
 
         trashListElement.appendChild(li);
     });
 
     emptyTrashBtn.disabled = false;
+    updateSelectionUI();
 }
 
 // Combined load and render function
 async function loadAndRenderTrash() {
     await loadTrashData();
     renderTrashList();
+}
+
+// Update the UI based on the current selection
+function updateSelectionUI() {
+    const count = selectedItems.size;
+
+    // Update the selected count text
+    if (selectedCountSpan) {
+        selectedCountSpan.textContent = count === 1
+            ? '1 item selected'
+            : `${count} items selected`;
+    }
+
+    // Enable/disable buttons based on selection
+    if (deleteSelectedBtn) {
+        deleteSelectedBtn.disabled = count === 0;
+    }
+
+    if (restoreSelectedBtn) {
+        restoreSelectedBtn.disabled = count === 0;
+    }
+
+    if (deselectAllBtn) {
+        deselectAllBtn.disabled = count === 0;
+    }
+}
+
+// Handle deleting selected items
+async function handleDeleteSelected() {
+    const count = selectedItems.size;
+    if (count === 0) return;
+
+    const confirmMessage = count === 1
+        ? 'Are you sure you want to permanently delete the selected item?'
+        : `Are you sure you want to permanently delete ${count} selected items?`;
+
+    if (confirm(confirmMessage)) {
+        try {
+            // Delete each selected item
+            const promises = Array.from(selectedItems).map(id => {
+                return invoke('delete_todo_item_permanently', { id: parseInt(id) });
+            });
+
+            await Promise.all(promises);
+            console.log(`Deleted ${count} items`);
+
+            // Clear selection and reload
+            selectedItems.clear();
+            await loadAndRenderTrash();
+        } catch (error) {
+            console.error('Error deleting selected items:', error);
+            alert('An error occurred while deleting the selected items.');
+        }
+    }
+}
+
+// Handle restoring selected items
+async function handleRestoreSelected() {
+    const count = selectedItems.size;
+    if (count === 0) return;
+
+    try {
+        // Restore each selected item
+        const promises = Array.from(selectedItems).map(id => {
+            return invoke('restore_todo_item', { id: parseInt(id) });
+        });
+
+        await Promise.all(promises);
+        console.log(`Restored ${count} items`);
+
+        // Notify the main window that todos have changed
+        if (typeof emit === 'function') {
+            await emit('todos-updated');
+        }
+
+        // Clear selection and reload
+        selectedItems.clear();
+        await loadAndRenderTrash();
+    } catch (error) {
+        console.error('Error restoring selected items:', error);
+        alert('An error occurred while restoring the selected items.');
+    }
 }
 
 // Handle restoring a single item

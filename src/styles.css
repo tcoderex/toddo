@@ -690,6 +690,86 @@ input:checked + .slider:before {
     background-color: rgba(255, 255, 255, 0.2);
 }
 
+/* Trash Controls */
+.trash-controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background-color: #f5f5f5;
+    border-bottom: 1px solid #e0e0e0;
+    gap: 15px;
+}
+
+.trash-sort-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.trash-sort-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.trash-sort-btn {
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+    background-color: #fff;
+    color: #757575;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.trash-sort-btn:hover {
+    background-color: #f5f5f5;
+    border-color: #bdbdbd;
+}
+
+.trash-sort-btn.active {
+    background-color: #5c67f2;
+    color: white;
+    border-color: #4a54cc;
+}
+
+.trash-select-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.trash-select-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+    background-color: #fff;
+    color: #757575;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.trash-select-btn:hover:not(:disabled) {
+    background-color: #f5f5f5;
+    border-color: #bdbdbd;
+}
+
+.trash-select-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.trash-select-btn .material-icons {
+    font-size: 16px;
+}
+
 /* Trash Content */
 .trash-content {
     flex: 1;
@@ -723,7 +803,6 @@ input:checked + .slider:before {
 .trash-item {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     padding: 15px 20px;
     border-bottom: 1px solid #f0f0f0;
     transition: background-color 0.2s ease;
@@ -735,6 +814,26 @@ input:checked + .slider:before {
 
 .trash-item:last-child {
     border-bottom: none;
+}
+
+.trash-item.selected {
+    background-color: rgba(92, 103, 242, 0.1);
+}
+
+.trash-checkbox {
+    margin-right: 15px;
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    accent-color: #5c67f2;
+}
+
+.trash-item-content {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-right: 15px;
 }
 
 .trash-text {
@@ -799,11 +898,66 @@ input:checked + .slider:before {
 /* Trash Actions */
 .trash-actions {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
     padding: 15px 20px;
     background-color: #f5f5f5;
     border-top: 1px solid #e0e0e0;
     border-radius: 0 0 8px 8px;
+}
+
+.trash-selection-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.selected-count {
+    font-size: 14px;
+    color: #757575;
+}
+
+.delete-selected-btn,
+.restore-selected-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: none;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.delete-selected-btn {
+    background-color: rgba(244, 67, 54, 0.1);
+    color: #f44336;
+}
+
+.delete-selected-btn:hover:not(:disabled) {
+    background-color: rgba(244, 67, 54, 0.2);
+}
+
+.restore-selected-btn {
+    background-color: rgba(76, 175, 80, 0.1);
+    color: #4CAF50;
+}
+
+.restore-selected-btn:hover:not(:disabled) {
+    background-color: rgba(76, 175, 80, 0.2);
+}
+
+.delete-selected-btn:disabled,
+.restore-selected-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.delete-selected-btn .material-icons,
+.restore-selected-btn .material-icons {
+    font-size: 16px;
 }
 
 .empty-trash-btn {
