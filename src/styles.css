@@ -1159,3 +1159,115 @@ ul.drag-over-active {
     outline: 1px dashed #c1d9fc; /* Subtle outline */
     outline-offset: -2px; /* Inset outline slightly */
 }
+
+/* Floating sort controls */
+.floating-sort-controls {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.floating-sort-controls:hover {
+    box-shadow: 0 0 15px rgba(92, 103, 242, 0.3);
+    border-radius: 12px;
+    width: auto;
+    height: auto;
+    padding: 10px;
+}
+
+.floating-sort-controls .sort-icon {
+    font-size: 20px;
+    color: #5c67f2;
+    animation: glow 2s infinite;
+}
+
+.floating-sort-controls:hover .sort-icon {
+    display: none;
+}
+
+.floating-sort-controls.visible {
+    display: flex;
+}
+
+.floating-sort-controls .sort-controls-wrapper {
+    display: none;
+    gap: 10px;
+    white-space: nowrap;
+}
+
+.floating-sort-controls:hover .sort-controls-wrapper {
+    display: flex;
+}
+
+/* Increase hover area */
+.floating-sort-controls::before {
+    content: '';
+    position: absolute;
+    top: -20px;
+    right: -20px;
+    bottom: -20px;
+    left: -20px;
+    z-index: -1;
+}
+
+@keyframes glow {
+    0%, 100% {
+        filter: drop-shadow(0 0 2px rgba(92, 103, 242, 0.4));
+    }
+    50% {
+        filter: drop-shadow(0 0 8px rgba(92, 103, 242, 0.6));
+    }
+}
+
+/* Hide original sort controls when floating controls are visible */
+.view-controls-bar.hidden {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+/* Style for the floating controls buttons */
+.floating-sort-controls .control-btn {
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    color: #666;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.floating-sort-controls .control-btn:hover {
+    background: #f0f0f0;
+    border-color: #bbb;
+}
+
+.floating-sort-controls .control-btn.active {
+    background: #5c67f2;
+    color: white;
+    border-color: #4a54cc;
+}
+
+/* Add spacing between control groups */
+.floating-sort-controls .control-group {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.floating-sort-controls .control-label {
+    color: #666;
+    font-size: 14px;
+    margin-right: 5px;
+}

@@ -80,6 +80,12 @@ let dueDateInput;
 let categorySelect;
 let viewTrashBtn; // Added for trash window logic
 
+// Add this after your existing variable declarations
+let floatingControls;
+let originalControlsBar;
+let lastScrollPosition = 0;
+const SCROLL_THRESHOLD = 100; // Adjust this value as needed
+
 // Load todos from storage
 async function loadTodos() {
   try {
@@ -1558,9 +1564,169 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  // Create floating controls
+  createFloatingControls();
+  
+  // Initialize scroll handling
+  initializeScrollHandling();
 
   // Load initial data
   await loadCategories();
   await loadTodos(); // Renders the initial list
   await loadTrash(); // Load trash data into memory
 });
+
+function createFloatingControls() {
+    // Create floating controls container
+    floatingControls = document.createElement('div');
+    floatingControls.className = 'floating-sort-controls';
+    
+    // Create sort icon
+    const sortIcon = document.createElement('span');
+    sortIcon.className = 'sort-icon';
+    sortIcon.textContent = '↕️';
+    floatingControls.appendChild(sortIcon);
+
+    // Clone the original controls structure
+    const controlsWrapper = document.createElement('div');
+    controlsWrapper.className = 'sort-controls-wrapper';
+
+    // Create sort target controls
+    const targetGroup = document.createElement('div');
+    targetGroup.className = 'control-group sort-target-group';
+    
+    const targetLabel = document.createElement('span');
+    targetLabel.className = 'control-label';
+    targetLabel.textContent = 'Sort:';
+    targetGroup.appendChild(targetLabel);
+
+    ['tasks', 'categories'].forEach(target => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `control-btn sort-target-btn ${sortTarget === target ? 'active' : ''}`;
+        btn.dataset.target = target;
+        btn.textContent = target.charAt(0).toUpperCase() + target.slice(1);
+        btn.onclick = () => {
+            sortTarget = target;
+            saveSortState();
+            updateFloatingControlsUI();
+            renderTodos();
+        };
+        targetGroup.appendChild(btn);
+    });
+
+    // Create sort by controls
+    const sortByGroup = document.createElement('div');
+    sortByGroup.className = 'control-group sort-by-group';
+
+    const byLabel = document.createElement('span');
+    byLabel.className = 'control-label';
+    byLabel.textContent = 'By:';
+    sortByGroup.appendChild(byLabel);
+
+    [['name', 'Name'], ['date', 'Date']].forEach(([value, text]) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `control-btn sort-by-btn ${sortBy === value ? 'active' : ''}`;
+        btn.dataset.sort = value;
+        btn.textContent = text;
+        btn.onclick = () => {
+            sortBy = value;
+            saveSortState();
+            updateFloatingControlsUI();
+            renderTodos();
+        };
+        sortByGroup.appendChild(btn);
+    });
+
+    // Create direction controls
+    const directionGroup = document.createElement('div');
+    directionGroup.className = 'control-group sort-direction-group';
+
+    ['asc', 'desc'].forEach(direction => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `control-btn sort-direction-btn ${sortDirection === direction ? 'active' : ''}`;
+        btn.dataset.direction = direction;
+        btn.textContent = direction === 'asc' ? '▲' : '▼';
+        btn.onclick = () => {
+            sortDirection = direction;
+            saveSortState();
+            updateFloatingControlsUI();
+            renderTodos();
+        };
+        directionGroup.appendChild(btn);
+    });
+
+    // Append all groups to wrapper
+    controlsWrapper.appendChild(targetGroup);
+    controlsWrapper.appendChild(sortByGroup);
+    controlsWrapper.appendChild(directionGroup);
+    floatingControls.appendChild(controlsWrapper);
+
+    // Add to document
+    document.body.appendChild(floatingControls);
+    
+    // Store reference to original controls bar
+    originalControlsBar = document.querySelector('.view-controls-bar');
+
+    // Initial UI update
+    updateFloatingControlsUI();
+}
+
+function initializeScrollHandling() {
+    let timeout;
+    window.addEventListener('scroll', () => {
+        const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+        
+        // Clear any existing timeout
+        clearTimeout(timeout);
+        
+        // Show/hide floating controls based on scroll position
+        if (currentScroll > SCROLL_THRESHOLD) {
+            floatingControls.classList.add('visible');
+            originalControlsBar.classList.add('hidden');
+        } else {
+            // Add a small delay before hiding to prevent flickering
+            timeout = setTimeout(() => {
+                floatingControls.classList.remove('visible');
+                originalControlsBar.classList.remove('hidden');
+            }, 150);
+        }
+        
+        lastScrollPosition = currentScroll;
+    });
+}
+
+// New function to update floating controls UI
+function updateFloatingControlsUI() {
+    if (!floatingControls) return;
+
+    // Update target buttons
+    floatingControls.querySelectorAll('.sort-target-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.target === sortTarget);
+    });
+
+    // Update sort by buttons
+    floatingControls.querySelectorAll('.sort-by-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.sort === sortBy);
+    });
+
+    // Update direction buttons
+    floatingControls.querySelectorAll('.sort-direction-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.direction === sortDirection);
+    });
+
+    // Also update the original controls if they exist
+    if (originalControlsBar) {
+        originalControlsBar.querySelectorAll('.sort-target-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.target === sortTarget);
+        });
+        originalControlsBar.querySelectorAll('.sort-by-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.sort === sortBy);
+        });
+        originalControlsBar.querySelectorAll('.sort-direction-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.direction === sortDirection);
+        });
+    }
+}
