@@ -31,7 +31,7 @@ function setupMockApis() {
         if (command === 'get_trash_data') return [];
         if (command === 'restore_todo_item') return true;
         if (command === 'delete_todo_item_permanently') return true;
-        if (command === 'empty_trash') return true;
+        if (command === 'empty_trash_bin') return true;
         return null;
     };
 
@@ -441,7 +441,7 @@ async function handleDelete(id) {
             await loadAndRenderTrash();
         } catch (error) {
             console.error(`Trash Window: Error deleting item ${id}:`, error);
-            // Show error to user?
+            alert(`Error deleting item: ${error.message || 'Unknown error'}`);
         }
     }
 }
@@ -458,7 +458,7 @@ async function handleEmptyTrash() {
             await loadAndRenderTrash();
         } catch (error) {
             console.error('Trash Window: Error emptying trash:', error);
-            // Show error to user?
+            alert(`Error emptying trash: ${error.message || 'Unknown error'}`);
         }
     }
 }

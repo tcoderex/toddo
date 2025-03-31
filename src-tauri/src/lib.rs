@@ -25,6 +25,9 @@ struct Todo {
     // Store the full category object or just the ID? Storing object for simplicity now.
     category: Option<Category>,
     position: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "trashedAt")]
+    trashed_at: Option<String>, // Timestamp when the item was trashed
 }
 
 // --- State Management (Optional - could remove if only using files) ---
@@ -142,6 +145,81 @@ fn save_categories(app: AppHandle<Wry>, categories: Vec<Category>) -> Result<(),
     Ok(())
 }
 
+// Get trash data for the trash window
+#[tauri::command]
+fn get_trash_data(app: AppHandle<Wry>) -> Result<Vec<Todo>, String> {
+    println!("Backend: Getting trash data...");
+    let trash = read_data::<Todo>(&app, "trash.json")?;
+    println!("Backend: Retrieved {} trashed todos.", trash.len());
+    Ok(trash)
+}
+
+// Permanently delete a todo item from trash
+#[tauri::command]
+fn delete_todo_item_permanently(app: AppHandle<Wry>, id: u64) -> Result<(), String> {
+    println!("Backend: Permanently deleting todo item {}...", id);
+
+    // Load current trash
+    let mut trash = read_data::<Todo>(&app, "trash.json")?;
+
+    // Remove the item with the given id
+    let original_len = trash.len();
+    trash.retain(|todo| todo.id != id);
+
+    // Check if an item was actually removed
+    if trash.len() == original_len {
+        return Err(format!("Item with id {} not found in trash", id));
+    }
+
+    // Save the updated trash
+    write_data(&app, "trash.json", &trash)?;
+    println!("Backend: Todo item {} permanently deleted.", id);
+    Ok(())
+}
+
+// Restore a todo item from trash to todos
+#[tauri::command]
+fn restore_todo_item(app: AppHandle<Wry>, id: u64) -> Result<(), String> {
+    println!("Backend: Restoring todo item {}...", id);
+
+    // Load current trash and todos
+    let mut trash = read_data::<Todo>(&app, "trash.json")?;
+    let mut todos = read_data::<Todo>(&app, "todos.json")?;
+
+    // Find the item to restore
+    let item_index = trash.iter().position(|todo| todo.id == id);
+
+    match item_index {
+        Some(index) => {
+            // Remove from trash and add to todos
+            let mut item = trash.remove(index);
+            // Remove the trashedAt field
+            item.trashed_at = None;
+            todos.push(item);
+
+            // Save both files
+            write_data(&app, "trash.json", &trash)?;
+            write_data(&app, "todos.json", &todos)?;
+
+            println!("Backend: Todo item {} restored.", id);
+            Ok(())
+        },
+        None => Err(format!("Item with id {} not found in trash", id))
+    }
+}
+
+// Empty the trash bin (delete all items)
+#[tauri::command]
+fn empty_trash_bin(app: AppHandle<Wry>) -> Result<(), String> {
+    println!("Backend: Emptying trash bin...");
+
+    // Save an empty array to trash.json
+    let empty_trash: Vec<Todo> = Vec::new();
+    write_data(&app, "trash.json", &empty_trash)?;
+
+    println!("Backend: Trash bin emptied.");
+    Ok(())
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -153,7 +231,11 @@ pub fn run() {
             load_trash,
             save_trash,
             load_categories,
-            save_categories
+            save_categories,
+            get_trash_data,
+            delete_todo_item_permanently,
+            restore_todo_item,
+            empty_trash_bin
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
