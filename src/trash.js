@@ -1,29 +1,106 @@
-const { invoke } = window.__TAURI__.core;
-const { getCurrent, emit } = window.__TAURI__.window; // To close the window and emit events
+// Check if we're running in a Tauri environment
+const isTauri = window.__TAURI__ !== undefined;
+
+// Initialize variables for Tauri APIs
+let invoke;
+let getCurrent;
+let emit;
+
+// Set up Tauri APIs if available, otherwise use mock implementations
+if (isTauri) {
+    try {
+        invoke = window.__TAURI__.core.invoke;
+        const windowAPI = window.__TAURI__.window;
+        getCurrent = windowAPI.getCurrent;
+        emit = windowAPI.emit;
+        console.log('Tauri APIs initialized successfully');
+    } catch (error) {
+        console.error('Error initializing Tauri APIs:', error);
+        setupMockApis();
+    }
+} else {
+    console.warn('Not running in a Tauri environment, using mock APIs');
+    setupMockApis();
+}
+
+// Set up mock implementations for non-Tauri environments
+function setupMockApis() {
+    // Mock invoke function
+    invoke = async (command, args) => {
+        console.warn(`Mock invoke called: ${command}`, args);
+        if (command === 'get_trash_data') return [];
+        if (command === 'restore_todo_item') return true;
+        if (command === 'delete_todo_item_permanently') return true;
+        if (command === 'empty_trash') return true;
+        return null;
+    };
+
+    // Mock window functions
+    getCurrent = () => ({
+        close: () => window.close(),
+    });
+
+    // Mock emit function
+    emit = (event) => {
+        console.warn(`Mock emit called: ${event}`);
+        // Try to communicate with opener window if available
+        if (window.opener && !window.opener.closed) {
+            window.opener.postMessage({ event, source: 'trash-window' }, '*');
+        }
+    };
+}
 
 let trashedTodos = [];
 let trashListElement;
 let emptyTrashBtn;
+let closeTrashBtn;
 
 // Load and render trash items when the window loads
 window.addEventListener('DOMContentLoaded', async () => {
     trashListElement = document.getElementById('trash-list');
     emptyTrashBtn = document.getElementById('empty-trash');
+    closeTrashBtn = document.getElementById('close-trash-window');
 
     if (!trashListElement || !emptyTrashBtn) {
         console.error('Required elements not found in trash.html');
         return;
     }
 
+    // Add event listener for the empty trash button
     emptyTrashBtn.addEventListener('click', handleEmptyTrash);
 
-    // Listen for updates from the main window (optional but good practice)
-    // const appWindow = WebviewWindow.getByLabel('main'); // Assuming main window has label 'main'
-    // appWindow?.listen('trash-updated', async () => {
-    //     console.log('Trash Window: Received trash-updated event');
-    //     await loadAndRenderTrash();
-    // });
+    // Add event listener for the close button
+    if (closeTrashBtn) {
+        closeTrashBtn.addEventListener('click', () => {
+            console.log('Closing trash window');
+            if (isTauri && getCurrent) {
+                try {
+                    const currentWindow = getCurrent();
+                    currentWindow.close();
+                } catch (error) {
+                    console.error('Error closing window:', error);
+                    window.close(); // Fallback
+                }
+            } else {
+                window.close();
+            }
+        });
+    }
 
+    // Listen for messages from the main window
+    window.addEventListener('message', (event) => {
+        // Check if the message is from our main window
+        if (event.data && event.data.source === 'main-window') {
+            console.log('Received message from main window:', event.data);
+
+            // If the main window is sending trash data
+            if (event.data.action === 'setTrashData' && Array.isArray(event.data.data)) {
+                console.log('Received trash data from main window');
+                trashedTodos = event.data.data;
+                renderTrashList();
+            }
+        }
+    });
 
     await loadAndRenderTrash();
 });
@@ -32,8 +109,24 @@ window.addEventListener('DOMContentLoaded', async () => {
 async function loadTrashData() {
     try {
         console.log('Trash Window: Loading trash...');
-        // This command needs to be implemented in the Rust backend (src-tauri/src/main.rs)
-        // It should read the trash.json file and return its contents.
+
+        // Try to get trash data from the opener window if available
+        if (!isTauri && window.opener && !window.opener.closed) {
+            try {
+                // Request trash data from the opener window
+                window.opener.postMessage({ action: 'getTrashData', source: 'trash-window' }, '*');
+
+                // For now, just return an empty array
+                // In a real implementation, we would wait for a response
+                trashedTodos = [];
+                return;
+            } catch (e) {
+                console.error('Error requesting trash data from opener:', e);
+            }
+        }
+
+        // If we're in a Tauri environment or couldn't get data from opener,
+        // try to use the invoke function
         trashedTodos = await invoke('get_trash_data');
         console.log('Trash Window: Loaded trash:', trashedTodos);
     } catch (error) {
@@ -51,7 +144,7 @@ function renderTrashList() {
     trashListElement.innerHTML = ''; // Clear current list
 
     if (trashedTodos.length === 0) {
-        trashListElement.innerHTML = '<li>Trash is empty.</li>';
+        trashListElement.innerHTML = '<li class="empty-trash-message"><span class="material-icons">delete_outline</span> Trash is empty.</li>';
         emptyTrashBtn.disabled = true;
         return;
     }
@@ -85,14 +178,14 @@ function renderTrashList() {
         const restoreBtn = document.createElement('button');
         restoreBtn.type = 'button';
         restoreBtn.className = 'trash-restore'; // Reuse class
-        restoreBtn.textContent = 'Restore';
+        restoreBtn.innerHTML = '<span class="material-icons">restore</span> Restore';
         restoreBtn.title = 'Restore Item';
         restoreBtn.addEventListener('click', () => handleRestore(todo.id));
 
         const deleteBtn = document.createElement('button');
         deleteBtn.type = 'button';
         deleteBtn.className = 'trash-delete'; // Reuse class
-        deleteBtn.textContent = 'Delete Permanently';
+        deleteBtn.innerHTML = '<span class="material-icons">delete_forever</span> Delete';
         deleteBtn.title = 'Delete Permanently';
         deleteBtn.addEventListener('click', () => handleDelete(todo.id));
 
@@ -125,13 +218,17 @@ async function handleRestore(id) {
         // It should find the item in trash.json, remove it,
         // add it back to todos.json, and save both files.
         await invoke('restore_todo_item', { id: id });
+
         // Notify the main window that todos have changed
-        await emit('todos-updated');
+        if (typeof emit === 'function') {
+            await emit('todos-updated');
+        }
+
         // Refresh the trash list in this window
         await loadAndRenderTrash();
     } catch (error) {
         console.error(`Trash Window: Error restoring item ${id}:`, error);
-        // Show error to user?
+        alert(`Error restoring item: ${error.message || 'Unknown error'}`);
     }
 }
 

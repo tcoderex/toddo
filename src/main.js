@@ -1,5 +1,54 @@
-const { invoke } = window.__TAURI__.core;
-const { WebviewWindow } = window.__TAURI__.window; // Import for potential future use (Trash window)
+// Check if we're running in a Tauri environment
+const isTauri = window.__TAURI__ !== undefined;
+
+// Import Tauri APIs if available
+let invoke;
+let WebviewWindowConstructor;
+let tauriVersion = 'unknown';
+
+if (isTauri) {
+  try {
+    // Import core API for invoke
+    invoke = window.__TAURI__.core.invoke;
+
+    // Log available APIs to help with debugging
+    console.log('Tauri window API:', window.__TAURI__.window);
+    console.log('Full Tauri API:', window.__TAURI__);
+
+    // Try to determine the Tauri version
+    if (window.__TAURI__.app && window.__TAURI__.app.getVersion) {
+      window.__TAURI__.app.getVersion().then(version => {
+        console.log('Tauri version:', version);
+        tauriVersion = version;
+      }).catch(err => {
+        console.error('Error getting Tauri version:', err);
+      });
+    }
+
+    // Try to get the WebviewWindow constructor
+    if (window.__TAURI__.window) {
+      if (typeof window.__TAURI__.window.WebviewWindow === 'function') {
+        WebviewWindowConstructor = window.__TAURI__.window.WebviewWindow;
+        console.log('WebviewWindow constructor found');
+      } else {
+        console.warn('WebviewWindow constructor not found');
+      }
+    }
+  } catch (e) {
+    console.error('Error initializing Tauri APIs:', e);
+  }
+} else {
+  console.warn('Not running in a Tauri environment');
+
+  // Create a mock invoke function for non-Tauri environments
+  invoke = async (command, args) => {
+    console.warn(`Mock invoke called: ${command}`, args);
+    if (command === 'load_todos') return [];
+    if (command === 'load_categories') return [];
+    if (command === 'load_trash') return [];
+    return null;
+  };
+}
 
 // Todo app state
 let todos = [];
@@ -964,38 +1013,39 @@ function updateTodo(id, text, dueDate, categoryId, categoryColor) {
 
 // Function to open the separate trash window
 function openTrashWindow() {
-    // Check if window already exists
-    let trashWin = WebviewWindow.getByLabel('trashWindow');
+    try {
+        // Use a simple approach that should work in any environment
+        console.log('Opening trash window');
 
-    if (trashWin) {
-        // If window exists, try to focus it
-        trashWin.setFocus().catch(console.error);
-    } else {
-        // If not, create it
-        trashWin = new WebviewWindow('trashWindow', {
-            url: 'trash.html', // Path to the new trash HTML file
-        title: 'Trash Bin',
-        width: 600,
-        height: 400,
-        resizable: true,
-        decorations: true, // Show window decorations (close, minimize, etc.)
-    });
+        // Try to use window.open which works in both browser and Tauri environments
+        const trashWindow = window.open('trash.html', 'trashWindow', 'width=600,height=400,resizable=yes');
 
-    // Optional: Listen for the window closing event
-    trashWin.once('tauri://destroyed', () => {
-        console.log('Trash window closed');
-        // Reload trash data in main process memory when window closes
-        loadTrash();
-    });
+        if (trashWindow) {
+            console.log('Successfully opened trash window');
 
-    // Optional: Listen for errors during window creation
-    trashWin.once('tauri://error', (e) => {
-        console.error('Failed to create trash window:', e);
-        // Optionally inform the user
-        alert('Could not open the trash window.');
-        });
-    } // End of else block (window doesn't exist)
-} // End of openTrashWindow function
+            // Add a simple event listener for when the window closes
+            if (trashWindow.addEventListener) {
+                trashWindow.addEventListener('beforeunload', () => {
+                    console.log('Trash window is closing');
+                    // Reload trash data when the window closes
+                    loadTrash();
+                });
+            }
+
+            // Try to focus the window
+            if (trashWindow.focus) {
+                trashWindow.focus();
+            }
+        } else {
+            // window.open can return null if popup blockers are enabled
+            console.error('Failed to open trash window - popup may have been blocked');
+            alert('Could not open the trash window. Please check if popup blockers are enabled.');
+        }
+    } catch (error) {
+        console.error('Error opening trash window:', error);
+        alert('Could not open the trash window. Error: ' + error.message);
+    }
+}
 
 
 // --- Drag and Drop Handlers ---
@@ -1450,11 +1500,31 @@ window.addEventListener('DOMContentLoaded', async () => {
   // Trash button listener - Opens new window
   viewTrashBtn.addEventListener('click', openTrashWindow);
 
-  // Listen for 'todos-updated' event from trash window to refresh main list
-  const { listen } = window.__TAURI__.event;
-  listen('todos-updated', () => {
-      console.log('Main Window: Received todos-updated event');
-      loadTodos(); // Reload and re-render the main todo list
+  // Listen for messages from the trash window
+  window.addEventListener('message', (event) => {
+    // Check if the message is from our trash window
+    if (event.data && event.data.source === 'trash-window') {
+      console.log('Received message from trash window:', event.data);
+
+      // If the trash window emitted a todos-updated event, reload todos
+      if (event.data.event === 'todos-updated') {
+        console.log('Reloading todos after trash window update');
+        loadTodos();
+      }
+
+      // If the trash window is requesting trash data
+      if (event.data.action === 'getTrashData') {
+        console.log('Trash window requested trash data');
+        // Send the trash data to the trash window
+        if (event.source && typeof event.source.postMessage === 'function') {
+          event.source.postMessage({
+            action: 'setTrashData',
+            source: 'main-window',
+            data: trashedTodos
+          }, '*');
+        }
+      }
+    }
   });
 
 
