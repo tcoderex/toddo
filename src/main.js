@@ -497,6 +497,7 @@ function renderTodos() {
 
   // 3. Render based on grouping
   if (isGroupedByCategory) {
+    // Group filtered todos by category
     const groupedTodos = filteredTodos.reduce((acc, todo) => {
       const categoryId = todo.category ? todo.category.id.toString() : 'uncategorized';
       if (!acc[categoryId]) {
@@ -507,13 +508,23 @@ function renderTodos() {
     }, {});
 
     // Get all root categories first
-    const rootCategoryIds = categories
+    let rootCategoryIds = categories
       .filter(cat => !cat.parent_id)
       .map(cat => cat.id.toString());
 
-    // Add 'uncategorized' to the list of root categories
+    // Add 'uncategorized' to the list of root categories if it has todos
     if (groupedTodos['uncategorized']) {
       rootCategoryIds.push('uncategorized');
+    }
+
+    // Filter categories based on current filter
+    if (currentFilter !== 'all') {
+      // For 'active' filter, only show categories with active todos
+      // For 'completed' filter, only show categories with completed todos
+      rootCategoryIds = rootCategoryIds.filter(categoryId => {
+        // Check if this category or any of its subcategories has todos matching the filter
+        return hasTodosMatchingFilter(categoryId, groupedTodos, currentFilter);
+      });
     }
 
     // Sort root categories if we're sorting categories
@@ -586,11 +597,11 @@ function createCategoryHeader(categoryId, categoryName, color, todos, isSubcateg
     header.setAttribute('role', 'button');
     header.setAttribute('tabindex', '0'); // Make it focusable
     header.setAttribute('aria-expanded', !foldedCategories.has(categoryId));
-    
+
     // Title section
     const titleSection = document.createElement('div');
     titleSection.className = 'category-title-section';
-    
+
     const foldIcon = document.createElement('span');
     foldIcon.className = 'category-fold-icon';
     foldIcon.textContent = foldedCategories.has(categoryId) ? '►' : '▼';
@@ -632,7 +643,7 @@ function createCategoryHeader(categoryId, categoryName, color, todos, isSubcateg
     completeBtn.id = `complete-btn-${categoryId}`;
     completeBtn.title = 'Complete all tasks';
     completeBtn.setAttribute('aria-label', 'Complete all tasks in category');
-    
+
     // Activate all button
     const activateBtn = document.createElement('button');
     activateBtn.type = 'button';
@@ -662,10 +673,10 @@ function createCategoryHeader(categoryId, categoryName, color, todos, isSubcateg
     // Add smooth click handling for the entire header
     header.addEventListener('click', (e) => {
         // Only toggle if clicking the header itself or title section
-        if (e.target === header || 
-            e.target === titleSection || 
-            e.target === foldIcon || 
-            e.target === title || 
+        if (e.target === header ||
+            e.target === titleSection ||
+            e.target === foldIcon ||
+            e.target === title ||
             e.target === count) {
             toggleCategoryFold(categoryId, header.closest('.category-group'));
         }
@@ -711,10 +722,10 @@ function renderCategoryGroup(categoryId, groupedTodos, parentElement, level = 0)
     const todos = groupedTodos[categoryId]?.todos || [];
     const category = categories.find(c => c.id.toString() === categoryId);
     const isSubcategory = level > 0;
-    
+
     const groupDiv = document.createElement('div');
     groupDiv.className = `category-group${isSubcategory ? ' subcategory' : ''}`;
-    
+
     // Create and add the new header with controls
     const header = createCategoryHeader(
         categoryId,
@@ -729,7 +740,7 @@ function renderCategoryGroup(categoryId, groupedTodos, parentElement, level = 0)
     if (todos.length > 0) {
         const todosList = document.createElement('ul');
         todosList.className = 'category-todos';
-        
+
         todos.forEach(todo => {
             todosList.appendChild(createTodoElement(todo));
         });
@@ -755,7 +766,7 @@ function renderCategoryGroup(categoryId, groupedTodos, parentElement, level = 0)
         if (foldedCategories.has(categoryId)) {
             subcategoriesContainer.style.display = 'none';
         }
-        
+
         const subcategoryIds = categories
             .filter(cat => cat.parent_id === parseInt(categoryId))
             .map(cat => cat.id.toString());
@@ -766,6 +777,26 @@ function renderCategoryGroup(categoryId, groupedTodos, parentElement, level = 0)
 
         groupDiv.appendChild(subcategoriesContainer);
     }
+}
+
+// Check if a category or any of its subcategories has todos matching the filter
+function hasTodosMatchingFilter(categoryId, groupedTodos, filter) {
+    // Check if this category has todos matching the filter
+    if (groupedTodos[categoryId]) {
+        // For 'active' filter, we need at least one active todo
+        // For 'completed' filter, we need at least one completed todo
+        // Since filteredTodos is already filtered by the current filter,
+        // if there are any todos in this category, it means they match the filter
+        return true;
+    }
+
+    // Check subcategories recursively
+    const subcategoryIds = categories
+        .filter(cat => cat.parent_id === parseInt(categoryId))
+        .map(cat => cat.id.toString());
+
+    // If any subcategory has matching todos, return true
+    return subcategoryIds.some(subId => hasTodosMatchingFilter(subId, groupedTodos, filter));
 }
 
 // Toggle category fold state
@@ -800,7 +831,7 @@ function toggleCategoryFold(categoryId, groupElement) {
             subcategoriesContainer.style.display = 'none';
         }
     }
-    
+
     saveFoldedState();
 }
 
@@ -1566,7 +1597,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // Create floating controls
   createFloatingControls();
-  
+
   // Initialize scroll handling
   initializeScrollHandling();
 
@@ -1580,7 +1611,7 @@ function createFloatingControls() {
     // Create floating controls container
     floatingControls = document.createElement('div');
     floatingControls.className = 'floating-sort-controls';
-    
+
     // Create sort icon
     const sortIcon = document.createElement('span');
     sortIcon.className = 'sort-icon';
@@ -1594,7 +1625,7 @@ function createFloatingControls() {
     // Create sort target controls
     const targetGroup = document.createElement('div');
     targetGroup.className = 'control-group sort-target-group';
-    
+
     const targetLabel = document.createElement('span');
     targetLabel.className = 'control-label';
     targetLabel.textContent = 'Sort:';
@@ -1666,7 +1697,7 @@ function createFloatingControls() {
 
     // Add to document
     document.body.appendChild(floatingControls);
-    
+
     // Store reference to original controls bar
     originalControlsBar = document.querySelector('.view-controls-bar');
 
@@ -1678,10 +1709,10 @@ function initializeScrollHandling() {
     let timeout;
     window.addEventListener('scroll', () => {
         const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
-        
+
         // Clear any existing timeout
         clearTimeout(timeout);
-        
+
         // Show/hide floating controls based on scroll position
         if (currentScroll > SCROLL_THRESHOLD) {
             floatingControls.classList.add('visible');
@@ -1693,7 +1724,7 @@ function initializeScrollHandling() {
                 originalControlsBar.classList.remove('hidden');
             }, 150);
         }
-        
+
         lastScrollPosition = currentScroll;
     });
 }
