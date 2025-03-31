@@ -133,6 +133,13 @@ h1 {
   align-items: center;
   padding: 10px 0;
   margin-bottom: 20px;
+  /* Make controls sticky */
+  position: sticky;
+  top: 0; /* Stick to the top */
+  background-color: #fff; /* Add background to prevent content showing through */
+  z-index: 5; /* Ensure it's above the list content */
+  padding: 10px 0; /* Keep padding */
+  border-bottom: 1px solid #eee; /* Add a separator */
 }
 
 .control-group {
@@ -171,6 +178,12 @@ h1 {
     display: inline-flex; /* Align icon and text */
     align-items: center;
     gap: 4px;
+}
+
+/* Style for the reorder button */
+#reorder-mode-toggle {
+    font-size: 16px; /* Make icon slightly larger */
+    padding: 6px 10px;
 }
 
 .control-btn:hover {
@@ -397,7 +410,34 @@ h1 {
   background-color: #f8f8f8;
   cursor: pointer;
   border-bottom: 1px solid #e0e0e0;
+  position: relative; /* For positioning the complete button */
 }
+
+/* Style for the "Complete All" button inside headers */
+.complete-all-category-btn {
+    background: none;
+    border: 1px solid #4CAF50; /* Green border */
+    color: #4CAF50;
+    cursor: pointer;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    margin-left: auto; /* Push to the right */
+    margin-right: 10px; /* Space before toggle icon */
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.complete-all-category-btn:hover {
+    background-color: rgba(76, 175, 80, 0.1); /* Light green background */
+}
+
+.complete-all-category-btn .material-icons { /* If using icons */
+    font-size: 14px;
+}
+
 
 /* Subcategory header styling */
 .subcategory .category-group-header {
