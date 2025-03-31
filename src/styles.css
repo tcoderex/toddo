@@ -696,13 +696,22 @@ input:checked + .slider:before {
 .modal {
   display: none; /* Hidden by default */
   position: fixed; /* Stay in place */
-  z-index: 10; /* Ensure modal is on top */
+  z-index: 1000; /* Base z-index for modals */
   left: 0;
   top: 0;
   width: 100%; /* Full width */
   height: 100%; /* Full height */
   overflow: auto; /* Enable scroll if needed */
   background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+/* Give category modal higher z-index than management modal */
+#category-modal {
+  z-index: 2000; /* Higher than category-management-modal */
+}
+
+#category-management-modal {
+  z-index: 1000; /* Lower than category-modal */
 }
 
 .modal-content {
@@ -715,6 +724,16 @@ input:checked + .slider:before {
   border-radius: 5px;
   box-shadow: 0 4px 8px rgba(0,0,0,0.2);
   position: relative; /* Needed for close button positioning */
+  z-index: 1; /* Relative to parent modal */
+}
+
+/* Specific modal content z-index adjustments */
+#category-modal .modal-content {
+  z-index: 2001; /* Higher than the category modal background */
+}
+
+#category-management-modal .modal-content {
+  z-index: 1001; /* Higher than the management modal background */
 }
 
 .close {
@@ -724,6 +743,16 @@ input:checked + .slider:before {
   right: 15px;
   font-size: 28px;
   font-weight: bold;
+  z-index: 10; /* Higher than its parent modal-content */
+  cursor: pointer;
+}
+
+#category-modal .close {
+  z-index: 2010; /* Higher than category modal content */
+}
+
+#category-management-modal .close {
+  z-index: 1010; /* Higher than management modal content */
 }
 
 .close:hover,
@@ -741,6 +770,12 @@ input:checked + .slider:before {
 
 .modal .form-group { /* Add class for spacing */
     margin-bottom: 15px;
+    position: relative;
+    z-index: 5; /* Higher than modal-content but lower than close button */
+}
+
+#category-modal .form-group {
+    z-index: 2005; /* Higher than category modal content */
 }
 
 
@@ -767,6 +802,16 @@ input:checked + .slider:before {
     color: #555;
     font-size: 14px;
     max-height: 200px; /* Limit height of dropdown */
+    position: relative;
+    z-index: 6; /* Higher than form groups */
+}
+
+#category-modal select {
+    z-index: 2007; /* Higher than save button in category modal */
+}
+
+#parent-category-select {
+    z-index: 3000 !important; /* Ensure dropdown appears above everything else */
 }
 
 .modal input[type="color"] {
@@ -784,6 +829,8 @@ input:checked + .slider:before {
     font-size: 16px;
     width: 100%; /* Full width button */
     margin-top: 10px; /* Space above button */
+    position: relative;
+    z-index: 2006; /* Higher than form groups in category modal */
 }
 
 #save-category-btn:hover {
@@ -1334,6 +1381,8 @@ ul.drag-over-active {
   border: 1px solid #ddd;
   border-radius: 4px;
   padding: 10px;
+  position: relative;
+  z-index: 1004; /* Lower than management actions but higher than modal content */
 }
 
 .category-item {
@@ -1342,6 +1391,8 @@ ul.drag-over-active {
   padding: 8px;
   border-bottom: 1px solid #eee;
   gap: 10px;
+  position: relative;
+  z-index: 1003; /* Same as the action buttons */
 }
 
 .category-item:last-child {
@@ -1361,6 +1412,8 @@ ul.drag-over-active {
 .category-actions {
   display: flex;
   gap: 5px;
+  position: relative;
+  z-index: 1004; /* Higher than category-item */
 }
 
 .category-action-btn {
@@ -1369,6 +1422,8 @@ ul.drag-over-active {
   border-radius: 3px;
   cursor: pointer;
   font-size: 0.9em;
+  position: relative;
+  z-index: 1005; /* Higher than category-actions */
 }
 
 .category-edit-btn {
@@ -1385,6 +1440,8 @@ ul.drag-over-active {
   display: flex;
   gap: 10px;
   margin-bottom: 15px;
+  position: relative;
+  z-index: 1005; /* Higher than categories-list */
 }
 
 .action-btn {
@@ -1392,9 +1449,11 @@ ul.drag-over-active {
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  background-color: #4CAF50;
+  background-color: #5c67f2; /* Match the Google theme color */
   color: white;
   font-weight: bold;
+  position: relative;
+  z-index: 1006; /* Higher than category-management-actions */
 }
 
 .action-btn:hover {
