@@ -253,6 +253,62 @@ fn show_main_window(app: AppHandle<Wry>) -> Result<(), String> {
     Ok(())
 }
 
+// Simple splash screen implementation using PowerShell
+#[cfg(target_os = "windows")]
+fn show_native_splash() {
+    use std::process::Command;
+    use std::thread;
+    use std::time::Duration;
+
+    // Launch a PowerShell script to show a simple splash screen
+    thread::spawn(move || {
+        let script = r#"
+            Add-Type -AssemblyName System.Windows.Forms
+            Add-Type -AssemblyName System.Drawing
+
+            $form = New-Object System.Windows.Forms.Form
+            $form.Text = 'Loading...'
+            $form.Size = New-Object System.Drawing.Size(400, 200)
+            $form.StartPosition = 'CenterScreen'
+            $form.FormBorderStyle = 'None'
+            $form.BackColor = [System.Drawing.Color]::FromArgb(244, 244, 244)
+            $form.TopMost = $true
+
+            $label = New-Object System.Windows.Forms.Label
+            $label.Text = 'Loading...'
+            $label.AutoSize = $true
+            $label.Font = New-Object System.Drawing.Font('Arial', 14)
+            $label.Location = New-Object System.Drawing.Point(150, 50)
+            $form.Controls.Add($label)
+
+            $progressBar = New-Object System.Windows.Forms.ProgressBar
+            $progressBar.Style = 'Marquee'
+            $progressBar.MarqueeAnimationSpeed = 30
+            $progressBar.Size = New-Object System.Drawing.Size(300, 20)
+            $progressBar.Location = New-Object System.Drawing.Point(50, 100)
+            $form.Controls.Add($progressBar)
+
+            # Auto-close after 2 seconds
+            $timer = New-Object System.Windows.Forms.Timer
+            $timer.Interval = 2000
+            $timer.Add_Tick({ $form.Close() })
+            $timer.Start()
+
+            $form.ShowDialog()
+        "#;
+
+        let _ = Command::new("powershell")
+            .args(["-Command", script])
+            .spawn();
+    });
+}
+
+// For non-Windows platforms, provide a simple no-op implementation
+#[cfg(not(target_os = "windows"))]
+fn show_native_splash() {
+    // No-op for non-Windows platforms
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -271,26 +327,33 @@ pub fn run() {
             show_main_window
         ])
         .setup(|app| {
-            // Ensure the main window is visible immediately
-            if let Some(window) = app.get_webview_window("main") {
-                println!("Main window found, showing it immediately");
-
-                // Force window to be visible immediately
-                match window.show() {
-                    Ok(_) => println!("Window shown successfully"),
-                    Err(e) => println!("Failed to show window: {}", e)
-                }
-            } else {
-                println!("No labeled window found, please ensure window has 'main' label");
-                // Try to get any window as a fallback
-                if let Some(window) = app.webview_windows().values().next() {
-                    println!("Found unlabeled window, showing it");
-                    match window.show() {
-                        Ok(_) => println!("Unlabeled window shown successfully"),
-                        Err(e) => println!("Failed to show unlabeled window: {}", e)
-                    }
-                }
+            // Show native splash screen
+            #[cfg(target_os = "windows")]
+            {
+                // Launch native splash screen
+                show_native_splash();
             }
+
+            // Keep main window hidden until explicitly shown from JavaScript
+            if let Some(_main_window) = app.get_webview_window("main") {
+                println!("Main window initialized and hidden until loading completes");
+            }
+
+            // Set a timeout to show the main window after a delay
+            if let Some(main_window) = app.get_webview_window("main") {
+                let main_window_clone = main_window.clone();
+                std::thread::spawn(move || {
+                    // Wait for a short time to allow the splash screen to show
+                    std::thread::sleep(std::time::Duration::from_millis(2000));
+
+                    // Show the main window
+                    println!("Showing main window after delay");
+                    if let Err(e) = main_window_clone.show() {
+                        println!("Failed to show main window: {}", e);
+                    }
+                });
+            }
+
             Ok(())
         })
         .run(tauri::generate_context!())
