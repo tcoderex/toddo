@@ -262,6 +262,16 @@ fn show_native_splash() {
     // Launch a PowerShell script to show a very simple splash screen
     thread::spawn(move || {
         let script = r#"
+            # Hide console window
+            Add-Type -Name Window -Namespace Console -MemberDefinition '
+            [DllImport("Kernel32.dll")]
+            public static extern IntPtr GetConsoleWindow();
+            [DllImport("user32.dll")]
+            public static extern bool ShowWindow(IntPtr hWnd, Int32 nCmdShow);
+            '
+            $consolePtr = [Console.Window]::GetConsoleWindow()
+            [void][Console.Window]::ShowWindow($consolePtr, 0) # 0 = SW_HIDE
+
             Add-Type -AssemblyName System.Windows.Forms
             Add-Type -AssemblyName System.Drawing
 
@@ -371,9 +381,9 @@ fn show_native_splash() {
                 $animationStep++
             })
 
-            # Auto-close timer
+            # Auto-close timer (reduced by 50% to 1250ms)
             $closeTimer = New-Object System.Windows.Forms.Timer
-            $closeTimer.Interval = 2500
+            $closeTimer.Interval = 1250
             $closeTimer.Add_Tick({
                 $form.Close()
             })
@@ -390,7 +400,7 @@ fn show_native_splash() {
         "#;
 
         let _ = Command::new("powershell")
-            .args(["-Command", script])
+            .args(["-WindowStyle", "Hidden", "-Command", script])
             .spawn();
     });
 }
@@ -435,8 +445,8 @@ pub fn run() {
             if let Some(main_window) = app.get_webview_window("main") {
                 let main_window_clone = main_window.clone();
                 std::thread::spawn(move || {
-                    // Wait for a short time to allow the splash screen to show
-                    std::thread::sleep(std::time::Duration::from_millis(3000));
+                    // Wait for a short time to allow the splash screen to show (reduced by 50% to 1500ms)
+                    std::thread::sleep(std::time::Duration::from_millis(1500));
 
                     // Show the main window
                     println!("Showing main window after delay");

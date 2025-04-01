@@ -10,7 +10,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "toddo",
+        "title": "Toddo",
         "width": 800,
         "height": 600,
         "visible": false,
@@ -18,7 +18,11 @@
         "decorations": true,
         "transparent": false,
         "skipTaskbar": false,
-        "label": "main"
+        "label": "main",
+        "minWidth": 400,
+        "minHeight": 300,
+        "theme": "Light",
+        "resizable": true
       }
     ],
     "security": {
@@ -29,11 +33,17 @@
     "active": true,
     "targets": "all",
     "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
-    ]
+      "icons/app.ico",
+      "icons/icon.icns"
+    ],
+    "windows": {
+      "wix": {
+        "language": "en-US"
+      }
+    },
+    "macOS": {
+      "minimumSystemVersion": "10.13",
+      "exceptionDomain": ""
+    }
   }
 }

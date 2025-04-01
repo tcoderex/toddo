@@ -5,6 +5,14 @@ description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
 
+# Enable Link Time Optimization for release builds
+[profile.release]
+opt-level = 3           # Maximum optimization
+lto = true              # Link Time Optimization
+codegen-units = 1       # Reduce parallel code generation units to increase optimization
+panic = "abort"         # Remove panic unwinding to reduce binary size
+strip = true            # Strip symbols from binary
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
