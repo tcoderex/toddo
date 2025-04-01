@@ -131,6 +131,7 @@ h1 {
   background-color: #ffebee; /* Light red background */
   color: #b71c1c; /* Even darker red */
   border-color: #ef9a9a;
+  box-shadow: 0 0 8px rgba(239, 154, 154, 0.7); /* Red glow */
 }
 
 
@@ -375,7 +376,24 @@ h1 {
   padding: 15px;
   border-bottom: 1px solid #eee;
   background-color: #fff;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, opacity 0.3s ease-out, max-height 0.3s ease-out;
+  overflow: hidden; /* Needed for height transition */
+  max-height: 100px; /* Set a reasonable max-height for transition */
+  opacity: 1;
+}
+
+/* Animation classes */
+.todo-item.fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.todo-item.fade-out {
+  animation: fadeOut 0.3s ease-out forwards;
+  /* Keep height during fade-out before collapsing */
+  max-height: 100px;
+  padding-top: 15px;
+  padding-bottom: 15px;
+  border-bottom-width: 1px;
 }
 
 .todo-item:last-child {
@@ -602,12 +620,14 @@ h1 {
   padding-left: 0;
   margin-top: 0;
   margin-bottom: 0;
-  transition: max-height 0.3s ease-out;
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out; /* Add opacity transition */
   overflow: hidden;
+  opacity: 1; /* Start visible */
 }
 
 .category-group.folded .subcategories-container {
   max-height: 0;
+  opacity: 0; /* Fade out when folded */
 }
 
 .toggle-icon {
@@ -633,10 +653,52 @@ h1 {
   opacity: 1;
 }
 
+/* Style for category counts (tasks and subcategories) */
+.category-count,
+.category-subcat-count {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: normal;
+}
+
+.category-count { /* Task count */
+  background-color: rgba(92, 103, 242, 0.1); /* Light blue background */
+  color: #5c67f2; /* Blue text */
+}
+
+.category-subcat-count { /* Subcategory count */
+  background-color: rgba(251, 188, 5, 0.15); /* Light yellow background */
+  color: #c78c00; /* Darker yellow text */
+}
+
+/* Optional: Add icons (requires icon font like Material Icons) */
+/*
+.category-count::before {
+  content: 'list_alt';
+  font-family: 'Material Icons';
+  font-size: 12px;
+}
+.category-subcat-count::before {
+  content: 'folder';
+  font-family: 'Material Icons';
+   font-size: 12px;
+}
+*/
+
 .category-group.folded .category-group-list {
   max-height: 0;
   opacity: 0;
   overflow: hidden;
+  /* Remove padding/border when folded to prevent visual artifacts */
+  padding-top: 0;
+  padding-bottom: 0;
+  border-top-width: 0;
+  border-bottom-width: 0;
 }
 
 /* Grouped items might need slightly less padding */
@@ -1500,4 +1562,32 @@ ul.drag-over-active {
 .subcategory-item {
   margin-left: 20px;
   border-left: 2px solid #eee;
+}
+
+/* Keyframes for animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    max-height: 100px; /* Keep height during fade */
+  }
+  to {
+    opacity: 0;
+    max-height: 0; /* Collapse height after fade */
+    padding-top: 0;
+    padding-bottom: 0;
+    border-bottom-width: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+  }
 }

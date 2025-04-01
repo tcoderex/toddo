@@ -324,7 +324,18 @@ function addTodo(text, dueDate = null, categoryId = null) {
 
   todos.push(newTodo);
   saveTodos(); // Save updates positions
+
+  // Render immediately, then add animation class
   renderTodos();
+  const newItemElement = todoList.querySelector(`li[data-id="${newTodo.id}"]`);
+  if (newItemElement) {
+    newItemElement.classList.add('fade-in');
+    // Remove class after animation to prevent re-triggering
+    newItemElement.addEventListener('animationend', () => {
+        newItemElement.classList.remove('fade-in');
+    }, { once: true });
+  }
+
   todoInput.value = '';
   dueDateInput.value = '';
   document.getElementById('category-select').value = '';
@@ -351,9 +362,22 @@ function trashTodo(id) {
       ...todoToTrash,
       trashedAt: new Date().toISOString()
     });
-    saveTodos(); // Save updated positions
-    saveTrash();
-    renderTodos();
+
+    // Animate removal
+    const itemElement = todoList.querySelector(`li[data-id="${id}"]`);
+    if (itemElement) {
+        itemElement.classList.add('fade-out');
+        itemElement.addEventListener('animationend', () => {
+            saveTodos(); // Save updated positions after animation
+            saveTrash();
+            renderTodos(); // Re-render the list without the item
+        }, { once: true });
+    } else {
+        // Fallback if element not found (shouldn't happen often)
+        saveTodos();
+        saveTrash();
+        renderTodos();
+    }
   }
 }
 
@@ -634,9 +658,27 @@ function createCategoryHeader(categoryId, categoryName, color, todos, isSubcateg
 
     const count = document.createElement('span');
     count.className = 'category-count';
-    count.textContent = `(${todos.length})`;
+    count.textContent = `(${todos.length})`; // Task count
     count.id = `category-count-${categoryId}`;
+    count.title = `${todos.length} task(s)`; // Tooltip
     titleSection.appendChild(count);
+
+    // --- Add Subcategory Count ---
+    if (categoryId !== 'uncategorized') {
+        const subCatCount = getSubcategories(parseInt(categoryId)).length;
+        if (subCatCount > 0) {
+            const subcatCountSpan = document.createElement('span');
+            subcatCountSpan.className = 'category-subcat-count';
+            subcatCountSpan.textContent = `(${subCatCount})`; // Subcategory count
+            subcatCountSpan.id = `category-subcat-count-${categoryId}`;
+            subcatCountSpan.title = `${subCatCount} subcategor(y/ies)`; // Tooltip
+            // Optional: Add icon if CSS is set up for it
+            // subcatCountSpan.innerHTML = `<span class="material-icons">folder</span> (${subCatCount})`;
+            titleSection.appendChild(subcatCountSpan);
+        }
+    }
+    // --- End Subcategory Count ---
+
 
     header.appendChild(titleSection);
 
@@ -821,23 +863,30 @@ function toggleCategoryFold(categoryId, groupElement) {
         if (foldIcon) {
             foldIcon.textContent = '▼';
         }
+        foldedCategories.delete(categoryId);
+        groupElement.classList.remove('folded');
+        if (foldIcon) foldIcon.textContent = '▼';
+        // Animate opening
         if (todosList) {
-            todosList.style.display = 'block';
+            todosList.style.maxHeight = todosList.scrollHeight + "px"; // Set max-height for transition
+            todosList.style.opacity = 1;
         }
         if (subcategoriesContainer) {
-            subcategoriesContainer.style.display = 'block';
+            subcategoriesContainer.style.maxHeight = subcategoriesContainer.scrollHeight + "px";
+            subcategoriesContainer.style.opacity = 1;
         }
     } else {
         foldedCategories.add(categoryId);
         groupElement.classList.add('folded');
-        if (foldIcon) {
-            foldIcon.textContent = '►';
-        }
+        if (foldIcon) foldIcon.textContent = '►';
+        // Animate closing
         if (todosList) {
-            todosList.style.display = 'none';
+            todosList.style.maxHeight = "0";
+            todosList.style.opacity = 0;
         }
         if (subcategoriesContainer) {
-            subcategoriesContainer.style.display = 'none';
+            subcategoriesContainer.style.maxHeight = "0";
+            subcategoriesContainer.style.opacity = 0;
         }
     }
 
@@ -1088,35 +1137,75 @@ function updateTodo(id, text, dueDate, categoryId, categoryColor) {
   renderTodos(); // Re-render the list to show updated item
 }
 
-// Function to open the separate trash window
-function openTrashWindow() {
+// Function to open the separate trash window using Tauri API if available
+async function openTrashWindow() {
+    const trashWindowLabel = 'trashWindow';
+    const url = 'trash.html'; // Relative path should work with Tauri
+
     try {
-        // Use a simple approach that should work in any environment
-        console.log('Opening trash window');
+        console.log('Attempting to open trash window...');
 
-        // Try to use window.open which works in both browser and Tauri environments
-        const trashWindow = window.open('trash.html', 'trashWindow', 'width=600,height=400,resizable=yes');
-
-        if (trashWindow) {
-            console.log('Successfully opened trash window');
-
-            // Add a simple event listener for when the window closes
-            if (trashWindow.addEventListener) {
-                trashWindow.addEventListener('beforeunload', () => {
-                    console.log('Trash window is closing');
-                    // Reload trash data when the window closes
-                    loadTrash();
-                });
+        if (isTauri && WebviewWindowConstructor) {
+            console.log('Using Tauri WebviewWindow API');
+            // Check if the window already exists
+            const existingWindow = WebviewWindowConstructor.getByLabel(trashWindowLabel);
+            if (existingWindow) {
+                console.log('Trash window already exists, focusing...');
+                await existingWindow.setFocus();
+                return; // Don't create a new one
             }
 
-            // Try to focus the window
-            if (trashWindow.focus) {
-                trashWindow.focus();
-            }
+            // Create a new window using the Tauri API
+            const webview = new WebviewWindowConstructor(trashWindowLabel, {
+                url: `asset:/${url}`, // Try asset protocol without localhost
+                title: "Trash Bin",
+                width: 600,
+                height: 400,
+                resizable: true,
+                decorations: true, // Enable window decorations (close, minimize, maximize)
+                center: true,
+                visible: true // Show immediately
+            });
+
+            // Listen for the window being created
+            webview.once('tauri://created', function () {
+                console.log('Tauri trash window created successfully');
+            });
+
+            // Listen for errors during creation
+            webview.once('tauri://error', function (e) {
+                console.error('Failed to create Tauri trash window:', e);
+                alert('Could not open the trash window. Error: ' + e.payload);
+            });
+
+            // Listen for the window being closed
+            webview.once('tauri://close-requested', async () => {
+                console.log('Tauri trash window close requested');
+                // Reload main window data when trash window closes
+                await loadTodos();
+                await loadTrash();
+            });
+
         } else {
-            // window.open can return null if popup blockers are enabled
-            console.error('Failed to open trash window - popup may have been blocked');
-            alert('Could not open the trash window. Please check if popup blockers are enabled.');
+            // Fallback to window.open for non-Tauri environments or if API failed
+            console.warn('Tauri WebviewWindow API not available, falling back to window.open');
+            const trashWindow = window.open(url, trashWindowLabel, 'width=600,height=400,resizable=yes');
+
+            if (trashWindow) {
+                console.log('Successfully opened trash window using window.open');
+                // Add a simple event listener for when the window closes (less reliable)
+                if (trashWindow.addEventListener) {
+                    trashWindow.addEventListener('beforeunload', () => {
+                        console.log('Trash window (window.open) is closing');
+                        loadTodos(); // Reload data
+                        loadTrash();
+                    });
+                }
+                if (trashWindow.focus) trashWindow.focus();
+            } else {
+                console.error('Failed to open trash window using window.open - popup may have been blocked');
+                alert('Could not open the trash window. Please check if popup blockers are enabled.');
+            }
         }
     } catch (error) {
         console.error('Error opening trash window:', error);
