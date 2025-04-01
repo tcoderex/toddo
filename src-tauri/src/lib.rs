@@ -1,6 +1,6 @@
 use tauri::{AppHandle, Manager, Wry};
 use std::fs::{self, File};
-use std::io::{Read, Write};
+use std::io::Read;
 use std::path::PathBuf;
 // Removed: use std::sync::Mutex;
 use serde::{Deserialize, Serialize};
@@ -54,7 +54,7 @@ fn get_data_path(app: &AppHandle<Wry>, filename: &str) -> Result<PathBuf, String
     Ok(data_dir.join(filename))
 }
 
-// Read data from a JSON file
+// Read data from a JSON file with improved performance
 fn read_data<T: for<'de> Deserialize<'de>>(app: &AppHandle<Wry>, filename: &str) -> Result<Vec<T>, String> {
     let path = get_data_path(app, filename)?;
     if !path.exists() {
@@ -62,25 +62,45 @@ fn read_data<T: for<'de> Deserialize<'de>>(app: &AppHandle<Wry>, filename: &str)
         return Ok(Vec::new()); // Return empty vec if file doesn't exist
     }
 
-    let mut file = File::open(&path).map_err(|e| format!("Failed to open {}: {}", filename, e))?;
-    let mut contents = String::new();
-    file.read_to_string(&mut contents).map_err(|e| format!("Failed to read {}: {}", filename, e))?;
+    // Use a buffered reader for better performance with larger files
+    let file = File::open(&path).map_err(|e| format!("Failed to open {}: {}", filename, e))?;
+    let file_size = file.metadata().map(|m| m.len()).unwrap_or(0);
 
-    if contents.trim().is_empty() {
-        println!("Backend: Data file '{}' is empty, returning empty list.", filename);
-        return Ok(Vec::new()); // Return empty vec if file is empty
+    // For very small files, use a simple read_to_string approach
+    if file_size < 1024 * 10 { // Less than 10KB
+        let mut contents = String::new();
+        let mut buffered = std::io::BufReader::new(file);
+        buffered.read_to_string(&mut contents).map_err(|e| format!("Failed to read {}: {}", filename, e))?;
+
+        if contents.trim().is_empty() {
+            println!("Backend: Data file '{}' is empty, returning empty list.", filename);
+            return Ok(Vec::new()); // Return empty vec if file is empty
+        }
+
+        return serde_json::from_str(&contents).map_err(|e| format!("Failed to parse {}: {}", filename, e));
     }
 
-    serde_json::from_str(&contents).map_err(|e| format!("Failed to parse {}: {}", filename, e))
+    // For larger files, use from_reader which is more efficient for larger data
+    let buffered = std::io::BufReader::new(file);
+    serde_json::from_reader(buffered).map_err(|e| format!("Failed to parse {}: {}", filename, e))
 }
 
-// Write data to a JSON file
+// Write data to a JSON file with improved performance
 fn write_data<T: Serialize>(app: &AppHandle<Wry>, filename: &str, data: &[T]) -> Result<(), String> {
     let path = get_data_path(app, filename)?;
-    let json_data = serde_json::to_string_pretty(data).map_err(|e| format!("Failed to serialize data for {}: {}", filename, e))?;
 
-    let mut file = File::create(&path).map_err(|e| format!("Failed to create/open {}: {}", filename, e))?;
-    file.write_all(json_data.as_bytes()).map_err(|e| format!("Failed to write to {}: {}", filename, e))?;
+    // Create file with buffered writer for better performance
+    let file = File::create(&path).map_err(|e| format!("Failed to create/open {}: {}", filename, e))?;
+    let buffered = std::io::BufWriter::new(file);
+
+    // Use to_writer directly instead of to_string + write_all for better performance
+    // Only use pretty formatting for small data sets to improve performance
+    if data.len() < 100 {
+        serde_json::to_writer_pretty(buffered, data).map_err(|e| format!("Failed to write data to {}: {}", filename, e))?;
+    } else {
+        serde_json::to_writer(buffered, data).map_err(|e| format!("Failed to write data to {}: {}", filename, e))?;
+    }
+
     Ok(())
 }
 
@@ -221,6 +241,18 @@ fn empty_trash_bin(app: AppHandle<Wry>) -> Result<(), String> {
     Ok(())
 }
 
+// Command to show the main window when loading is complete
+#[tauri::command]
+fn show_main_window(app: AppHandle<Wry>) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        window.show().map_err(|e| format!("Failed to show window: {}", e))?;
+        window.set_focus().map_err(|e| format!("Failed to focus window: {}", e))?;
+    } else {
+        return Err("Main window not found".to_string());
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -235,8 +267,32 @@ pub fn run() {
             get_trash_data,
             delete_todo_item_permanently,
             restore_todo_item,
-            empty_trash_bin
+            empty_trash_bin,
+            show_main_window
         ])
+        .setup(|app| {
+            // Ensure the main window is visible immediately
+            if let Some(window) = app.get_webview_window("main") {
+                println!("Main window found, showing it immediately");
+
+                // Force window to be visible immediately
+                match window.show() {
+                    Ok(_) => println!("Window shown successfully"),
+                    Err(e) => println!("Failed to show window: {}", e)
+                }
+            } else {
+                println!("No labeled window found, please ensure window has 'main' label");
+                // Try to get any window as a fallback
+                if let Some(window) = app.webview_windows().values().next() {
+                    println!("Found unlabeled window, showing it");
+                    match window.show() {
+                        Ok(_) => println!("Unlabeled window shown successfully"),
+                        Err(e) => println!("Failed to show unlabeled window: {}", e)
+                    }
+                }
+            }
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -12,7 +12,13 @@
       {
         "title": "toddo",
         "width": 800,
-        "height": 600
+        "height": 600,
+        "visible": false,
+        "center": true,
+        "decorations": true,
+        "transparent": false,
+        "skipTaskbar": false,
+        "label": "main"
       }
     ],
     "security": {

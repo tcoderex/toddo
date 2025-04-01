@@ -1367,37 +1367,407 @@ function saveSortState() {
 }
 
 
+// Loading screen elements and utilities
+let loadingScreen;
+let progressBar;
+let progressText;
+let totalLoadingSteps = 5; // Total number of loading steps
+let completedSteps = 0;
+
+// Function to update loading progress
+function updateLoadingProgress(step, message = null) {
+  completedSteps = step;
+  const percentage = Math.min(Math.round((completedSteps / totalLoadingSteps) * 100), 100);
+
+  if (progressBar) {
+    progressBar.style.width = `${percentage}%`;
+  }
+
+  if (progressText) {
+    progressText.textContent = message || `Loading... ${percentage}%`;
+  }
+
+  console.log(`Loading progress: ${percentage}% - ${message || 'Step ' + step}`);
+}
+
+// Function to hide loading screen and show app
+async function hideLoadingScreen() {
+  if (!loadingScreen) return;
+
+  // Update to 100% before hiding
+  updateLoadingProgress(totalLoadingSteps, 'Ready!');
+
+  // Show the Tauri window if we're in a Tauri environment
+  if (isTauri) {
+    try {
+      await invoke('show_main_window');
+      console.log('Main window shown');
+    } catch (error) {
+      console.error('Error showing main window:', error);
+    }
+  }
+
+  // Add fade-out class
+  loadingScreen.classList.add('fade-out');
+
+  // Show the main container
+  document.querySelector('.container').style.display = 'block';
+
+  // Remove loading screen after animation completes
+  setTimeout(() => {
+    loadingScreen.style.display = 'none';
+  }, 300); // Match the transition duration
+}
+
 // Initialize the app
 window.addEventListener('DOMContentLoaded', async () => {
   console.log('DOM content loaded');
 
-  // Load UI states
-  loadGroupingState();
-  loadFoldedState();
-  loadSortState();
+  // Debug: Try to show window immediately
+  if (isTauri && window.__TAURI__) {
+    console.log('Tauri environment detected, showing window immediately for debugging');
+    try {
+      await window.__TAURI__.core.invoke('show_main_window');
+      console.log('Window show command sent');
+    } catch (e) {
+      console.error('Failed to show window:', e);
+    }
+  } else {
+    console.log('Not in Tauri environment or Tauri API not available');
+  }
 
-  // Get DOM elements
-  todoInput = document.querySelector('#todo-input');
-  todoList = document.querySelector('#todo-list'); // This is the main container (e.g., a div)
-  itemsLeftSpan = document.querySelector('#items-left');
-  filterAllBtn = document.querySelector('#filter-all');
-  filterActiveBtn = document.querySelector('#filter-active');
-  filterCompletedBtn = document.querySelector('#filter-completed');
-  clearCompletedBtn = document.querySelector('#clear-completed');
-  dueDateInput = document.querySelector('#todo-due-date');
-  categorySelect = document.getElementById('category-select');
-  groupByToggle = document.getElementById('group-by-category-toggle');
-  sortTargetButtons = document.querySelectorAll('.sort-target-btn');
-  sortByButtons = document.querySelectorAll('.sort-by-btn');
-  sortDirectionButtons = document.querySelectorAll('.sort-direction-btn');
-  viewTrashBtn = document.querySelector('#view-trash-btn'); // Get trash button
+  // Set a timeout to ensure the app loads even if there's an error
+  setTimeout(() => {
+    const container = document.querySelector('.container');
+    if (container && container.style.display === 'none') {
+      console.log('Fallback: Showing app container after timeout');
+      container.style.display = 'block';
 
-  // Set initial UI states
-  if (groupByToggle) groupByToggle.checked = isGroupedByCategory;
-  updateSortButtonsUI();
+      // Hide loading screen if it's still visible
+      const loadingScreen = document.getElementById('loading-screen');
+      if (loadingScreen) {
+        loadingScreen.style.display = 'none';
+      }
+    }
+  }, 5000); // 5 second fallback
 
-  // Add event listeners
+  // Get loading screen elements
+  loadingScreen = document.getElementById('loading-screen');
+  progressBar = document.getElementById('progress-bar');
+  progressText = document.getElementById('progress-text');
+
+  // Start loading process
+  updateLoadingProgress(0, 'Initializing...');
+
+  // Initialize app in the background
+  setTimeout(initializeApp, 10); // Small delay to ensure loading screen is rendered
+});
+
+// Main initialization function
+async function initializeApp() {
+  try {
+    console.log('Starting app initialization...');
+    // Step 1: Load UI states (fast operations)
+    console.log('Step 1: Loading UI states...');
+    updateLoadingProgress(1, 'Loading preferences...');
+    try {
+      loadGroupingState();
+      console.log('Loaded grouping state');
+      loadFoldedState();
+      console.log('Loaded folded state');
+      loadSortState();
+      console.log('Loaded sort state');
+    } catch (e) {
+      console.error('Error loading UI states:', e);
+      throw new Error('Failed to load UI preferences: ' + e.message);
+    }
+
+    // Step 2: Get DOM elements
+    console.log('Step 2: Getting DOM elements...');
+    updateLoadingProgress(2, 'Preparing interface...');
+    try {
+      todoInput = document.querySelector('#todo-input');
+      console.log('Found todo input:', todoInput ? 'yes' : 'no');
+      todoList = document.querySelector('#todo-list'); // This is the main container (e.g., a div)
+      console.log('Found todo list:', todoList ? 'yes' : 'no');
+      itemsLeftSpan = document.querySelector('#items-left');
+      console.log('Found items left span:', itemsLeftSpan ? 'yes' : 'no');
+      filterAllBtn = document.querySelector('#filter-all');
+      filterActiveBtn = document.querySelector('#filter-active');
+      filterCompletedBtn = document.querySelector('#filter-completed');
+      clearCompletedBtn = document.querySelector('#clear-completed');
+      dueDateInput = document.querySelector('#todo-due-date');
+      categorySelect = document.getElementById('category-select');
+      groupByToggle = document.getElementById('group-by-category-toggle');
+      sortTargetButtons = document.querySelectorAll('.sort-target-btn');
+      sortByButtons = document.querySelectorAll('.sort-by-btn');
+      sortDirectionButtons = document.querySelectorAll('.sort-direction-btn');
+      viewTrashBtn = document.querySelector('#view-trash-btn'); // Get trash button
+
+      // Check if critical elements are missing
+      if (!todoList || !todoInput) {
+        throw new Error('Critical DOM elements not found. UI may not be fully loaded.');
+      }
+    } catch (e) {
+      console.error('Error getting DOM elements:', e);
+      throw new Error('Failed to initialize UI elements: ' + e.message);
+    }
+
+    // Define updateSortButtonsUI function
+    function updateSortButtonsUI() {
+      if (!sortTargetButtons || !sortByButtons || !sortDirectionButtons) {
+        console.warn('Sort buttons not found, skipping UI update');
+        return;
+      }
+      sortTargetButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.target === sortTarget));
+      sortByButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.sort === sortBy));
+      sortDirectionButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.direction === sortDirection));
+    }
+
+    // Set initial UI states
+    if (groupByToggle) groupByToggle.checked = isGroupedByCategory;
+
+    // Make updateSortButtonsUI globally available
+    window.updateSortButtonsUI = updateSortButtonsUI;
+
+    // Update sort button UI
+    updateSortButtonsUI();
+
+    // Step 3: Load data in parallel
+    console.log('Step 3: Loading data...');
+    updateLoadingProgress(3, 'Loading data...');
+    try {
+      const results = await Promise.all([
+        loadCategoriesAsync().catch(e => {
+          console.error('Error loading categories:', e);
+          return [];
+        }),
+        loadTodosAsync().catch(e => {
+          console.error('Error loading todos:', e);
+          return [];
+        }),
+        loadTrashAsync().catch(e => {
+          console.error('Error loading trash:', e);
+          return [];
+        })
+      ]);
+      console.log('Data loading complete:', {
+        categoriesCount: results[0].length,
+        todosCount: results[1].length,
+        trashCount: results[2].length
+      });
+    } catch (e) {
+      console.error('Error during parallel data loading:', e);
+      throw new Error('Failed to load application data: ' + e.message);
+    }
+
+    // Step 4: Set up event listeners
+    console.log('Step 4: Setting up event listeners...');
+    updateLoadingProgress(4, 'Setting up interactions...');
+    try {
+      setupEventListeners();
+      console.log('Event listeners set up successfully');
+    } catch (e) {
+      console.error('Error setting up event listeners:', e);
+      throw new Error('Failed to set up event handlers: ' + e.message);
+    }
+
+    // Step 5: Final initialization
+    console.log('Step 5: Final initialization...');
+    updateLoadingProgress(5, 'Finalizing...');
+    try {
+      createFloatingControls();
+      console.log('Floating controls created');
+      initializeScrollHandling();
+      console.log('Scroll handling initialized');
+    } catch (e) {
+      console.error('Error in final initialization:', e);
+      throw new Error('Failed to complete initialization: ' + e.message);
+    }
+
+    // Hide loading screen and show app
+    console.log('All initialization steps complete, showing app...');
+    hideLoadingScreen();
+  } catch (error) {
+    console.error('Error during initialization:', error);
+    // Show detailed error in loading screen
+    if (progressText) {
+      const errorMessage = error?.message || 'Unknown error';
+      progressText.textContent = `Error: ${errorMessage}`;
+      progressText.style.color = '#EA4335'; // Google red
+
+      // Add a button to retry
+      const retryButton = document.createElement('button');
+      retryButton.textContent = 'Retry';
+      retryButton.style.marginTop = '15px';
+      retryButton.style.padding = '8px 16px';
+      retryButton.style.backgroundColor = '#4285F4';
+      retryButton.style.color = 'white';
+      retryButton.style.border = 'none';
+      retryButton.style.borderRadius = '4px';
+      retryButton.style.cursor = 'pointer';
+      retryButton.onclick = () => window.location.reload();
+
+      // Add the button after the progress text
+      progressText.parentNode.insertBefore(retryButton, progressText.nextSibling);
+
+      // Log more details to console
+      console.log('Error details:', error);
+      console.log('App state:', { todos, categories, trashedTodos });
+    }
+  }
+}
+
+// Async versions of data loading functions
+async function loadCategoriesAsync() {
+  try {
+    console.log('Loading categories...');
+    categories = await invoke('load_categories');
+
+    // Ensure all categories have a created_at property for sorting
+    categories = categories.map(category => {
+      if (!category.created_at) {
+        // If no created_at, use ID as a fallback (since it's likely a timestamp)
+        return {
+          ...category,
+          created_at: new Date(parseInt(category.id)).toISOString()
+        };
+      }
+      return category;
+    });
+
+    console.log('Loaded categories:', categories);
+    renderCategoryDropdown();
+    return categories;
+  } catch (error) {
+    console.error('Error loading categories:', error);
+    categories = [];
+    renderCategoryDropdown();
+    return [];
+  }
+}
+
+async function loadTodosAsync() {
+  try {
+    console.log('Loading todos...');
+    todos = await invoke('load_todos');
+    console.log('Loaded todos:', todos);
+    // Ensure position is a number and sort
+    todos = todos.map(t => ({ ...t, position: Number(t.position) || 0 }));
+    todos.sort((a, b) => a.position - b.position);
+    renderTodos();
+    return todos;
+  } catch (error) {
+    console.error('Error loading todos:', error);
+    todos = [];
+    return [];
+  }
+}
+
+async function loadTrashAsync() {
+  try {
+    console.log('Loading trash...');
+    trashedTodos = await invoke('load_trash');
+    console.log('Loaded trash:', trashedTodos);
+    return trashedTodos;
+  } catch (error) {
+    console.error('Error loading trash:', error);
+    trashedTodos = [];
+    return [];
+  }
+}
+
+// Setup event listeners
+function setupEventListeners() {
   const todoForm = document.querySelector('#todo-form');
+
+  // Make sure updateSortButtonsUI is available
+  if (typeof updateSortButtonsUI !== 'function') {
+    window.updateSortButtonsUI = function() {
+      if (!sortTargetButtons || !sortByButtons || !sortDirectionButtons) {
+        console.warn('Sort buttons not found, skipping UI update');
+        return;
+      }
+      sortTargetButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.target === sortTarget));
+      sortByButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.sort === sortBy));
+      sortDirectionButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.direction === sortDirection));
+    };
+  }
+
+  // Listen for messages from the trash window
+  window.addEventListener('message', (event) => {
+    // Check if the message is from our trash window
+    if (event.data && event.data.source === 'trash-window') {
+      console.log('Received message from trash window:', event.data);
+
+      // If the trash window emitted a todos-updated event, reload todos
+      if (event.data.event === 'todos-updated') {
+        console.log('Reloading todos after trash window update');
+        loadTodos();
+        // Also reload trash data
+        loadTrash();
+      }
+
+      // Handle restored item from trash window (for non-Tauri environment)
+      if (event.data.action === 'restoreItem' && event.data.item) {
+        console.log('Restoring item from trash window:', event.data.item);
+        const restoredItem = event.data.item;
+
+        // Remove the trashedAt property
+        delete restoredItem.trashedAt;
+
+        // Add the item back to todos
+        todos.push(restoredItem);
+
+        // Save todos
+        saveTodos();
+
+        // Re-render todos
+        renderTodos();
+
+        // Remove from trashedTodos
+        trashedTodos = trashedTodos.filter(todo => todo.id !== restoredItem.id);
+        saveTrash();
+      }
+
+      // Handle multiple restored items from trash window (for non-Tauri environment)
+      if (event.data.action === 'restoreMultipleItems' && Array.isArray(event.data.items) && event.data.items.length > 0) {
+        console.log('Restoring multiple items from trash window:', event.data.items);
+
+        // Process each restored item
+        event.data.items.forEach(item => {
+          // Remove the trashedAt property
+          delete item.trashedAt;
+
+          // Add the item back to todos
+          todos.push(item);
+
+          // Remove from trashedTodos
+          trashedTodos = trashedTodos.filter(todo => todo.id !== item.id);
+        });
+
+        // Save todos and trash
+        saveTodos();
+        saveTrash();
+
+        // Re-render todos
+        renderTodos();
+      }
+
+      // If the trash window is requesting trash data
+      if (event.data.action === 'getTrashData') {
+        console.log('Trash window requested trash data');
+        // Send the trash data to the trash window
+        if (event.source && typeof event.source.postMessage === 'function') {
+          event.source.postMessage({
+            action: 'setTrashData',
+            source: 'main-window',
+            data: trashedTodos
+          }, '*');
+        }
+      }
+    }
+  });
   todoForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const text = todoInput.value;
@@ -1439,7 +1809,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     button.addEventListener('click', () => {
       sortTarget = button.dataset.target;
       saveSortState();
-      updateSortButtonsUI();
+      window.updateSortButtonsUI();
       renderTodos();
     });
   });
@@ -1448,7 +1818,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     button.addEventListener('click', () => {
       sortBy = button.dataset.sort;
       saveSortState();
-      updateSortButtonsUI();
+      window.updateSortButtonsUI();
       renderTodos();
     });
   });
@@ -1457,16 +1827,12 @@ window.addEventListener('DOMContentLoaded', async () => {
     button.addEventListener('click', () => {
       sortDirection = button.dataset.direction;
       saveSortState();
-      updateSortButtonsUI();
+      window.updateSortButtonsUI();
       renderTodos();
     });
   });
 
-  function updateSortButtonsUI() {
-    sortTargetButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.target === sortTarget));
-    sortByButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.sort === sortBy));
-    sortDirectionButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.direction === sortDirection));
-  }
+  // updateSortButtonsUI is now defined in the initializeApp function
 
   categorySelect.addEventListener('change', (e) => {
     const modal = document.getElementById('category-modal');
@@ -1607,93 +1973,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // Trash button listener - Opens new window
   viewTrashBtn.addEventListener('click', openTrashWindow);
-
-  // Listen for messages from the trash window
-  window.addEventListener('message', (event) => {
-    // Check if the message is from our trash window
-    if (event.data && event.data.source === 'trash-window') {
-      console.log('Received message from trash window:', event.data);
-
-      // If the trash window emitted a todos-updated event, reload todos
-      if (event.data.event === 'todos-updated') {
-        console.log('Reloading todos after trash window update');
-        loadTodos();
-        // Also reload trash data
-        loadTrash();
-      }
-
-      // Handle restored item from trash window (for non-Tauri environment)
-      if (event.data.action === 'restoreItem' && event.data.item) {
-        console.log('Restoring item from trash window:', event.data.item);
-        const restoredItem = event.data.item;
-
-        // Remove the trashedAt property
-        delete restoredItem.trashedAt;
-
-        // Add the item back to todos
-        todos.push(restoredItem);
-
-        // Save todos
-        saveTodos();
-
-        // Re-render todos
-        renderTodos();
-
-        // Remove from trashedTodos
-        trashedTodos = trashedTodos.filter(todo => todo.id !== restoredItem.id);
-        saveTrash();
-      }
-
-      // Handle multiple restored items from trash window (for non-Tauri environment)
-      if (event.data.action === 'restoreMultipleItems' && Array.isArray(event.data.items) && event.data.items.length > 0) {
-        console.log('Restoring multiple items from trash window:', event.data.items);
-
-        // Process each restored item
-        event.data.items.forEach(item => {
-          // Remove the trashedAt property
-          delete item.trashedAt;
-
-          // Add the item back to todos
-          todos.push(item);
-
-          // Remove from trashedTodos
-          trashedTodos = trashedTodos.filter(todo => todo.id !== item.id);
-        });
-
-        // Save todos and trash
-        saveTodos();
-        saveTrash();
-
-        // Re-render todos
-        renderTodos();
-      }
-
-      // If the trash window is requesting trash data
-      if (event.data.action === 'getTrashData') {
-        console.log('Trash window requested trash data');
-        // Send the trash data to the trash window
-        if (event.source && typeof event.source.postMessage === 'function') {
-          event.source.postMessage({
-            action: 'setTrashData',
-            source: 'main-window',
-            data: trashedTodos
-          }, '*');
-        }
-      }
-    }
-  });
-
-  // Create floating controls
-  createFloatingControls();
-
-  // Initialize scroll handling
-  initializeScrollHandling();
-
-  // Load initial data
-  await loadCategories();
-  await loadTodos(); // Renders the initial list
-  await loadTrash(); // Load trash data into memory
-});
+}
 
 function createFloatingControls() {
     // Create floating controls container
