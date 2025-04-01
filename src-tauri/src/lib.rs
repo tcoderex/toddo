@@ -253,48 +253,213 @@ fn show_main_window(app: AppHandle<Wry>) -> Result<(), String> {
     Ok(())
 }
 
-// Simple splash screen implementation using PowerShell
+// Simplified splash screen implementation using PowerShell
 #[cfg(target_os = "windows")]
 fn show_native_splash() {
     use std::process::Command;
     use std::thread;
-    use std::time::Duration;
 
-    // Launch a PowerShell script to show a simple splash screen
+    // Launch a PowerShell script to show a simplified splash screen
     thread::spawn(move || {
         let script = r#"
             Add-Type -AssemblyName System.Windows.Forms
             Add-Type -AssemblyName System.Drawing
 
+            # Google Colors
+            $googleBlue = [System.Drawing.Color]::FromArgb(66, 133, 244)    # #4285F4
+            $googleRed = [System.Drawing.Color]::FromArgb(234, 67, 53)      # #EA4335
+            $googleYellow = [System.Drawing.Color]::FromArgb(251, 188, 5)   # #FBBC05
+            $googleGreen = [System.Drawing.Color]::FromArgb(52, 168, 83)    # #34A853
+            $backgroundColor = [System.Drawing.Color]::FromArgb(244, 244, 244) # #F4F4F4
+
+            # Create main form
             $form = New-Object System.Windows.Forms.Form
-            $form.Text = 'Loading...'
-            $form.Size = New-Object System.Drawing.Size(400, 200)
+            $form.Text = 'Toddo'
+            $form.Size = New-Object System.Drawing.Size(400, 250)
             $form.StartPosition = 'CenterScreen'
             $form.FormBorderStyle = 'None'
-            $form.BackColor = [System.Drawing.Color]::FromArgb(244, 244, 244)
+            $form.BackColor = $backgroundColor
             $form.TopMost = $true
 
-            $label = New-Object System.Windows.Forms.Label
-            $label.Text = 'Loading...'
-            $label.AutoSize = $true
-            $label.Font = New-Object System.Drawing.Font('Arial', 14)
-            $label.Location = New-Object System.Drawing.Point(150, 50)
-            $form.Controls.Add($label)
+            # Create title label
+            $titleLabel = New-Object System.Windows.Forms.Label
+            $titleLabel.Text = 'Toddo'
+            $titleLabel.Font = New-Object System.Drawing.Font('Segoe UI', 18, [System.Drawing.FontStyle]::Bold)
+            $titleLabel.ForeColor = $googleBlue
+            $titleLabel.AutoSize = $true
+            $titleLabel.Location = New-Object System.Drawing.Point(150, 30)
+            $form.Controls.Add($titleLabel)
 
-            $progressBar = New-Object System.Windows.Forms.ProgressBar
-            $progressBar.Style = 'Marquee'
-            $progressBar.MarqueeAnimationSpeed = 30
-            $progressBar.Size = New-Object System.Drawing.Size(300, 20)
-            $progressBar.Location = New-Object System.Drawing.Point(50, 100)
-            $form.Controls.Add($progressBar)
+            # Create loading label
+            $loadingLabel = New-Object System.Windows.Forms.Label
+            $loadingLabel.Text = 'Loading...'
+            $loadingLabel.Font = New-Object System.Drawing.Font('Segoe UI', 10)
+            $loadingLabel.ForeColor = [System.Drawing.Color]::FromArgb(100, 100, 100)
+            $loadingLabel.AutoSize = $true
+            $loadingLabel.Location = New-Object System.Drawing.Point(165, 70)
+            $form.Controls.Add($loadingLabel)
 
-            # Auto-close after 2 seconds
-            $timer = New-Object System.Windows.Forms.Timer
-            $timer.Interval = 2000
-            $timer.Add_Tick({ $form.Close() })
-            $timer.Start()
+            # Create Google-colored progress bars
+            $progressHeight = 4
+            $progressWidth = 300
+            $progressSpacing = 2
+            $progressTop = 110
 
-            $form.ShowDialog()
+            # Blue progress bar
+            $blueBar = New-Object System.Windows.Forms.Panel
+            $blueBar.Size = New-Object System.Drawing.Size($progressWidth / 4, $progressHeight)
+            $blueBar.Location = New-Object System.Drawing.Point(50, $progressTop)
+            $blueBar.BackColor = $googleBlue
+            $form.Controls.Add($blueBar)
+
+            # Red progress bar
+            $redBar = New-Object System.Windows.Forms.Panel
+            $redBar.Size = New-Object System.Drawing.Size($progressWidth / 4, $progressHeight)
+            $redBar.Location = New-Object System.Drawing.Point(50 + $progressWidth / 4 + $progressSpacing, $progressTop)
+            $redBar.BackColor = $googleRed
+            $form.Controls.Add($redBar)
+
+            # Yellow progress bar
+            $yellowBar = New-Object System.Windows.Forms.Panel
+            $yellowBar.Size = New-Object System.Drawing.Size($progressWidth / 4, $progressHeight)
+            $yellowBar.Location = New-Object System.Drawing.Point(50 + 2 * ($progressWidth / 4 + $progressSpacing), $progressTop)
+            $yellowBar.BackColor = $googleYellow
+            $form.Controls.Add($yellowBar)
+
+            # Green progress bar
+            $greenBar = New-Object System.Windows.Forms.Panel
+            $greenBar.Size = New-Object System.Drawing.Size($progressWidth / 4, $progressHeight)
+            $greenBar.Location = New-Object System.Drawing.Point(50 + 3 * ($progressWidth / 4 + $progressSpacing), $progressTop)
+            $greenBar.BackColor = $googleGreen
+            $form.Controls.Add($greenBar)
+
+            # Create Google logo
+            $logoPanel = New-Object System.Windows.Forms.Panel
+            $logoPanel.Size = New-Object System.Drawing.Size(80, 80)
+            $logoPanel.Location = New-Object System.Drawing.Point(160, 130)
+            $logoPanel.BackColor = [System.Drawing.Color]::Transparent
+            $form.Controls.Add($logoPanel)
+
+            # Create Google logo circles
+            $circleSize = 15
+
+            # Blue circle
+            $blueCircle = New-Object System.Windows.Forms.Panel
+            $blueCircle.Size = New-Object System.Drawing.Size($circleSize, $circleSize)
+            $blueCircle.Location = New-Object System.Drawing.Point(10, 30)
+            $blueCircle.BackColor = $googleBlue
+            $logoPanel.Controls.Add($blueCircle)
+
+            # Red circle
+            $redCircle = New-Object System.Windows.Forms.Panel
+            $redCircle.Size = New-Object System.Drawing.Size($circleSize, $circleSize)
+            $redCircle.Location = New-Object System.Drawing.Point(30, 10)
+            $redCircle.BackColor = $googleRed
+            $logoPanel.Controls.Add($redCircle)
+
+            # Yellow circle
+            $yellowCircle = New-Object System.Windows.Forms.Panel
+            $yellowCircle.Size = New-Object System.Drawing.Size($circleSize, $circleSize)
+            $yellowCircle.Location = New-Object System.Drawing.Point(50, 30)
+            $yellowCircle.BackColor = $googleYellow
+            $logoPanel.Controls.Add($yellowCircle)
+
+            # Green circle
+            $greenCircle = New-Object System.Windows.Forms.Panel
+            $greenCircle.Size = New-Object System.Drawing.Size($circleSize, $circleSize)
+            $greenCircle.Location = New-Object System.Drawing.Point(30, 50)
+            $greenCircle.BackColor = $googleGreen
+            $logoPanel.Controls.Add($greenCircle)
+
+            # Animation variables
+            $animationStep = 0
+
+            # Create animation timer
+            $animTimer = New-Object System.Windows.Forms.Timer
+            $animTimer.Interval = 100 # 10fps
+            $animTimer.Add_Tick({
+                # Update loading text with dots animation
+                $dotsCount = $animationStep % 4
+                $dots = '.' * $dotsCount
+                $loadingLabel.Text = "Loading$dots"
+
+                # Animate the circles
+                $offset = 2
+                switch ($animationStep % 4) {
+                    0 {
+                        $blueCircle.Top -= $offset
+                        $redCircle.Left += $offset
+                        $yellowCircle.Top += $offset
+                        $greenCircle.Left -= $offset
+                    }
+                    1 {
+                        $blueCircle.Left += $offset
+                        $redCircle.Top += $offset
+                        $yellowCircle.Left -= $offset
+                        $greenCircle.Top -= $offset
+                    }
+                    2 {
+                        $blueCircle.Top += $offset
+                        $redCircle.Left -= $offset
+                        $yellowCircle.Top -= $offset
+                        $greenCircle.Left += $offset
+                    }
+                    3 {
+                        $blueCircle.Left -= $offset
+                        $redCircle.Top -= $offset
+                        $yellowCircle.Left += $offset
+                        $greenCircle.Top += $offset
+                    }
+                }
+
+                $animationStep++
+            })
+
+            # Auto-close timer
+            $closeTimer = New-Object System.Windows.Forms.Timer
+            $closeTimer.Interval = 2500
+            $closeTimer.Add_Tick({
+                # Fade out effect
+                $fadeTimer = New-Object System.Windows.Forms.Timer
+                $fadeTimer.Interval = 10
+                $opacity = 1.0
+                $fadeTimer.Add_Tick({
+                    $opacity -= 0.05
+                    if ($opacity -le 0) {
+                        $form.Close()
+                        $fadeTimer.Stop()
+                    } else {
+                        $form.Opacity = $opacity
+                    }
+                })
+                $fadeTimer.Start()
+                $closeTimer.Stop()
+            })
+
+            # Start timers
+            $animTimer.Start()
+            $closeTimer.Start()
+
+            # Show form with fade-in effect
+            $form.Opacity = 0
+            $form.Show()
+
+            $fadeInTimer = New-Object System.Windows.Forms.Timer
+            $fadeInTimer.Interval = 10
+            $opacity = 0.0
+            $fadeInTimer.Add_Tick({
+                $opacity += 0.05
+                if ($opacity -ge 1) {
+                    $form.Opacity = 1
+                    $fadeInTimer.Stop()
+                } else {
+                    $form.Opacity = $opacity
+                }
+            })
+            $fadeInTimer.Start()
+
+            # Run application
+            [System.Windows.Forms.Application]::Run($form)
         "#;
 
         let _ = Command::new("powershell")
@@ -344,7 +509,7 @@ pub fn run() {
                 let main_window_clone = main_window.clone();
                 std::thread::spawn(move || {
                     // Wait for a short time to allow the splash screen to show
-                    std::thread::sleep(std::time::Duration::from_millis(2000));
+                    std::thread::sleep(std::time::Duration::from_millis(3000));
 
                     // Show the main window
                     println!("Showing main window after delay");
