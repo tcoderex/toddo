@@ -274,6 +274,13 @@ pub fn run() {
             WindowEvent::CloseRequested { api: _, .. } => { // <-- Mark api as unused
                 if window.label() == "main" { // <-- Use 'window' directly
                     println!("Main window close requested. Exiting application.");
+                    // Explicitly close all windows before exiting
+                    if let Some(main_window) = window.app_handle().get_webview_window("main") {
+                        main_window.close().unwrap_or_else(|e| println!("Error closing main window: {}", e));
+                    }
+                    if let Some(trash_window) = window.app_handle().get_webview_window("trashWindow") {
+                        trash_window.close().unwrap_or_else(|e| println!("Error closing trash window: {}", e));
+                    }
                     window.app_handle().exit(0); // <-- Use 'window' to get app_handle
                 } else {
                     // Allow other windows to close normally. Tauri default behavior
