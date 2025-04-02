@@ -1,4 +1,4 @@
-use tauri::{AppHandle, Manager, Wry};
+use tauri::{AppHandle, Manager, Wry, WindowEvent}; // <-- Add WindowEvent
 use std::fs::{self, File};
 use std::io::Read;
 use std::path::PathBuf;
@@ -270,6 +270,20 @@ pub fn run() {
             empty_trash_bin,
             show_main_window
         ])
+        .on_window_event(|window, event| match event { // <-- Corrected signature and match target
+            WindowEvent::CloseRequested { api: _, .. } => { // <-- Mark api as unused
+                if window.label() == "main" { // <-- Use 'window' directly
+                    println!("Main window close requested. Exiting application.");
+                    window.app_handle().exit(0); // <-- Use 'window' to get app_handle
+                } else {
+                    // Allow other windows to close normally. Tauri default behavior
+                    // will exit if this is the last window.
+                    println!("Window '{}' close requested. Allowing default behavior.", window.label()); // <-- Use 'window'
+                    // We don't call api.prevent_close()
+                }
+            }
+            _ => {}
+        })
         .setup(|app| {
             // Keep main window hidden until explicitly shown from JavaScript
             if let Some(_main_window) = app.get_webview_window("main") {

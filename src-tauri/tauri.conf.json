@@ -27,7 +27,7 @@
       {
         "label": "trashWindow",
         "title": "Trash Bin",
-        "url": "asset:/trash.html",
+        "url": "./trash.html",
         "width": 600,
         "height": 400,
         "visible": false,
