@@ -1,4 +1,4 @@
-use tauri::{AppHandle, Manager, Wry, WindowEvent}; // <-- Add WindowEvent
+use tauri::{AppHandle, Manager, Wry, WindowEvent, WebviewWindowBuilder, WebviewUrl}; // <-- Use Webview builders
 use std::fs::{self, File};
 use std::io::Read;
 use std::path::PathBuf;
@@ -241,6 +241,41 @@ fn empty_trash_bin(app: AppHandle<Wry>) -> Result<(), String> {
     Ok(())
 }
 
+// Command to open the trash window
+#[tauri::command]
+async fn open_trash_window(app_handle: tauri::AppHandle) -> Result<(), String> {
+    println!("Backend: Opening trash window...");
+    // Check if window already exists
+    if app_handle.get_webview_window("trashWindow").is_some() {
+        println!("Backend: Trash window already exists, focusing...");
+        if let Some(window) = app_handle.get_webview_window("trashWindow") {
+            window.set_focus().map_err(|e| format!("Failed to focus trash window: {}", e))?;
+        }
+        return Ok(()); // Window already exists, do nothing more
+    }
+
+    // Create the window if it doesn't exist using WebviewWindowBuilder
+    match WebviewWindowBuilder::new(
+        &app_handle,
+        "trashWindow", // Unique identifier
+        WebviewUrl::App("trash.html".into()) // Use WebviewUrl::App for bundled assets
+    )
+    .title("Trash")
+    .inner_size(800.0, 600.0) // Set initial size (use f64)
+    .build() {
+        Ok(_) => {
+            println!("Backend: Trash window opened successfully.");
+            Ok(())
+        },
+        Err(e) => {
+            let err_msg = format!("Failed to build trash window: {}", e);
+            println!("Backend Error: {}", err_msg);
+            Err(err_msg)
+        }
+    }
+}
+
+
 // Command to show the main window when loading is complete
 #[tauri::command]
 fn show_main_window(app: AppHandle<Wry>) -> Result<(), String> {
@@ -268,7 +303,8 @@ pub fn run() {
             delete_todo_item_permanently,
             restore_todo_item,
             empty_trash_bin,
-            show_main_window
+            show_main_window,
+            open_trash_window // <-- Register the new command
         ])
         .on_window_event(|window, event| match event { // <-- Corrected signature and match target
             WindowEvent::CloseRequested { api: _, .. } => { // <-- Mark api as unused

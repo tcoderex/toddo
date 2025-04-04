@@ -3,7 +3,7 @@ const isTauri = window.__TAURI__ !== undefined;
 
 // Import Tauri APIs if available
 let invoke;
-let WebviewWindowConstructor;
+// Removed: let WebviewWindowConstructor;
 let tauriVersion = 'unknown';
 
 if (isTauri) {
@@ -25,15 +25,7 @@ if (isTauri) {
       });
     }
 
-    // Try to get the WebviewWindow constructor
-    if (window.__TAURI__.window) {
-      if (typeof window.__TAURI__.window.WebviewWindow === 'function') {
-        WebviewWindowConstructor = window.__TAURI__.window.WebviewWindow;
-        console.log('WebviewWindow constructor found');
-      } else {
-        console.warn('WebviewWindow constructor not found');
-      }
-    }
+    // Removed: WebviewWindow constructor logic
 
     // Set up event listener for todos-updated event from trash window
     if (window.__TAURI__.event && typeof window.__TAURI__.event.listen === 'function') {
@@ -1137,80 +1129,25 @@ function updateTodo(id, text, dueDate, categoryId, categoryColor) {
   renderTodos(); // Re-render the list to show updated item
 }
 
-// Function to open the separate trash window using Tauri API if available
+// Function to open the separate trash window using the backend command
 async function openTrashWindow() {
-    const trashWindowLabel = 'trashWindow';
-    const url = 'trash.html'; // Relative path should work with Tauri
-
-    try {
-        console.log('Attempting to open trash window...');
-
-        if (isTauri && WebviewWindowConstructor) {
-            console.log('Using Tauri WebviewWindow API');
-            // Check if the window already exists
-            const existingWindow = WebviewWindowConstructor.getByLabel(trashWindowLabel);
-            if (existingWindow) {
-                console.log('Trash window already exists, focusing...');
-                await existingWindow.setFocus();
-                return; // Don't create a new one
-            }
-
-            // Create a new window using the Tauri API
-            const webview = new WebviewWindowConstructor(trashWindowLabel, {
-                url: `asset:/${url}`, // Try asset protocol without localhost
-                title: "Trash Bin",
-                width: 600,
-                height: 400,
-                resizable: true,
-                decorations: true, // Enable window decorations (close, minimize, maximize)
-                center: true,
-                visible: true // Show immediately
-            });
-
-            // Listen for the window being created
-            webview.once('tauri://created', function () {
-                console.log('Tauri trash window created successfully');
-            });
-
-            // Listen for errors during creation
-            webview.once('tauri://error', function (e) {
-                console.error('Failed to create Tauri trash window:', e);
-                alert('Could not open the trash window. Error: ' + e.payload);
-            });
-
-            // Listen for the window being closed
-            webview.once('tauri://close-requested', async () => {
-                console.log('Tauri trash window close requested');
-                // Reload main window data when trash window closes
-                await loadTodos();
-                await loadTrash();
-            });
-
-        } else {
-            // Fallback to window.open for non-Tauri environments or if API failed
-            console.warn('Tauri WebviewWindow API not available, falling back to window.open');
-            const trashWindow = window.open(url, trashWindowLabel, 'width=600,height=400,resizable=yes');
-
-            if (trashWindow) {
-                console.log('Successfully opened trash window using window.open');
-                // Add a simple event listener for when the window closes (less reliable)
-                if (trashWindow.addEventListener) {
-                    trashWindow.addEventListener('beforeunload', () => {
-                        console.log('Trash window (window.open) is closing');
-                        loadTodos(); // Reload data
-                        loadTrash();
-                    });
-                }
-                if (trashWindow.focus) trashWindow.focus();
-            } else {
-                console.error('Failed to open trash window using window.open - popup may have been blocked');
-                alert('Could not open the trash window. Please check if popup blockers are enabled.');
-            }
-        }
-    } catch (error) {
-        console.error('Error opening trash window:', error);
-        alert('Could not open the trash window. Error: ' + error.message);
+  try {
+    console.log('Attempting to open trash window via backend command...');
+    if (isTauri && invoke) {
+      await invoke('open_trash_window');
+      console.log('Invoked open_trash_window command successfully.');
+      // Note: We don't need to handle focus or check if it exists here,
+      // the backend command could potentially handle that if needed,
+      // but the current implementation just creates a new one or errors.
+      // The 'todos-updated' event listener handles data refresh when needed.
+    } else {
+      console.warn('Not in Tauri environment or invoke not available. Cannot open trash window.');
+      alert('Cannot open trash window outside of the Tauri application.');
     }
+  } catch (error) {
+    console.error('Error invoking open_trash_window command:', error);
+    alert('Could not open the trash window. Error: ' + (error.message || error));
+  }
 }
 
 
@@ -2060,7 +1997,7 @@ function setupEventListeners() {
   filterCompletedBtn.addEventListener('click', () => setFilter('completed'));
   clearCompletedBtn.addEventListener('click', clearCompleted);
 
-  // Trash button listener - Opens new window
+  // Trash button listener - Opens new window via backend command
   viewTrashBtn.addEventListener('click', openTrashWindow);
 }
 

@@ -23,17 +23,6 @@
         "minHeight": 300,
         "theme": "Light",
         "resizable": true
-      },
-      {
-        "label": "trashWindow",
-        "title": "Trash Bin",
-        "url": "./trash.html",
-        "width": 600,
-        "height": 400,
-        "visible": false,
-        "center": true,
-        "resizable": true,
-        "decorations": true
       }
     ],
     "security": {
