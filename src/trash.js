@@ -148,15 +148,36 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     // Add event listener for the close button
     if (closeTrashBtn) {
-        closeTrashBtn.addEventListener('click', () => {
+        closeTrashBtn.addEventListener('click', async () => {
             console.log('Closing trash window');
-            if (isTauri && getCurrent) {
+            if (isTauri) {
                 try {
-                    const currentWindow = getCurrent();
-                    currentWindow.close();
+                    // Use direct Tauri API call to ensure proper window closure
+                    if (window.__TAURI__ && window.__TAURI__.window) {
+                        const currentWindow = window.__TAURI__.window.getCurrent();
+                        await currentWindow.close();
+                    } else if (getCurrent) {
+                        // Fallback to the initialized getCurrent function
+                        const currentWindow = getCurrent();
+                        await currentWindow.close();
+                    } else {
+                        // Last resort fallback
+                        window.close();
+                    }
                 } catch (error) {
                     console.error('Error closing window:', error);
-                    window.close(); // Fallback
+                    // Try one more approach if the first fails
+                    try {
+                        if (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) {
+                            // Try to close via backend command
+                            await window.__TAURI__.core.invoke('close_trash_window');
+                        } else {
+                            window.close(); // Standard fallback
+                        }
+                    } catch (secondError) {
+                        console.error('Second attempt to close window failed:', secondError);
+                        window.close(); // Final fallback
+                    }
                 }
             } else {
                 window.close();

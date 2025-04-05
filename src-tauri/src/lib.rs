@@ -275,6 +275,20 @@ async fn open_trash_window(app_handle: tauri::AppHandle) -> Result<(), String> {
     }
 }
 
+// Command to close the trash window
+#[tauri::command]
+fn close_trash_window(app_handle: tauri::AppHandle) -> Result<(), String> {
+    println!("Backend: Closing trash window...");
+    if let Some(window) = app_handle.get_webview_window("trashWindow") {
+        window.close().map_err(|e| format!("Failed to close trash window: {}", e))?;
+        println!("Backend: Trash window closed successfully.");
+        Ok(())
+    } else {
+        println!("Backend: Trash window not found, nothing to close.");
+        Ok(()) // No window to close, not an error
+    }
+}
+
 
 // Command to show the main window when loading is complete
 #[tauri::command]
@@ -304,11 +318,12 @@ pub fn run() {
             restore_todo_item,
             empty_trash_bin,
             show_main_window,
-            open_trash_window // <-- Register the new command
+            open_trash_window,
+            close_trash_window
         ])
-        .on_window_event(|window, event| match event { // <-- Corrected signature and match target
-            WindowEvent::CloseRequested { api: _, .. } => { // <-- Mark api as unused
-                if window.label() == "main" { // <-- Use 'window' directly
+        .on_window_event(|window, event| match event {
+            WindowEvent::CloseRequested { api: _, .. } => {
+                if window.label() == "main" {
                     println!("Main window close requested. Exiting application.");
                     // Explicitly close all windows before exiting
                     if let Some(main_window) = window.app_handle().get_webview_window("main") {
@@ -317,11 +332,16 @@ pub fn run() {
                     if let Some(trash_window) = window.app_handle().get_webview_window("trashWindow") {
                         trash_window.close().unwrap_or_else(|e| println!("Error closing trash window: {}", e));
                     }
-                    window.app_handle().exit(0); // <-- Use 'window' to get app_handle
+                    window.app_handle().exit(0);
+                } else if window.label() == "trashWindow" {
+                    println!("Trash window close requested. Closing trash window only.");
+                    // Ensure the trash window is properly closed
+                    window.close().unwrap_or_else(|e| println!("Error closing trash window: {}", e));
+                    // We don't need to call api.prevent_close() as we want the window to close
                 } else {
                     // Allow other windows to close normally. Tauri default behavior
                     // will exit if this is the last window.
-                    println!("Window '{}' close requested. Allowing default behavior.", window.label()); // <-- Use 'window'
+                    println!("Window '{}' close requested. Allowing default behavior.", window.label());
                     // We don't call api.prevent_close()
                 }
             }
