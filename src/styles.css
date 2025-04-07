@@ -194,6 +194,8 @@ h1 {
   -webkit-user-select: none;
   user-select: none;
   transition: background-color 0.2s ease;
+  position: relative; /* Ensure proper stacking context */
+  z-index: 1; /* Ensure it's above other elements */
 }
 
 .category-header:hover {
@@ -212,6 +214,9 @@ h1 {
   gap: 8px;
   flex: 1;
   /* Removed pointer-events: none; to allow click */
+  cursor: pointer; /* Ensure cursor shows it's clickable */
+  position: relative; /* Ensure proper stacking context */
+  z-index: 2; /* Higher than header to ensure clicks are captured */
 }
 
 .category-actions {
@@ -260,6 +265,9 @@ h1 {
   display: inline-block;
   width: 20px;
   text-align: center;
+  cursor: pointer;
+  font-size: 16px; /* Make it slightly larger */
+  padding: 2px; /* Add some padding for a larger click target */
 }
 
 .category-group.folded .category-fold-icon {

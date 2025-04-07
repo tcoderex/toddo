@@ -645,6 +645,11 @@ function createCategoryHeader(categoryId, categoryName, color, todos, isSubcateg
     foldIcon.className = 'category-fold-icon';
     foldIcon.textContent = foldedCategories.has(categoryId) ? '►' : '▼';
     foldIcon.setAttribute('aria-hidden', 'true');
+    // Add specific click handler for the fold icon
+    foldIcon.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent event bubbling
+        toggleCategoryFold(categoryId, header.closest('.category-group'));
+    });
     titleSection.appendChild(foldIcon);
 
     const colorDot = document.createElement('span');
@@ -728,12 +733,20 @@ function createCategoryHeader(categoryId, categoryName, color, todos, isSubcateg
     header.appendChild(actionsSection);
 
     // Add click handling specifically to the title section for folding
-    titleSection.addEventListener('click', (e) => {
+    titleSection.addEventListener('click', () => {
         // Prevent clicks on counts/icons within titleSection from stopping the toggle
         toggleCategoryFold(categoryId, header.closest('.category-group'));
     });
     // Make title section itself clickable
     titleSection.style.cursor = 'pointer';
+
+    // Add click handler to the entire header as well for better click response
+    header.addEventListener('click', (e) => {
+        // Only handle clicks directly on the header, not on its children
+        if (e.target === header) {
+            toggleCategoryFold(categoryId, header.closest('.category-group'));
+        }
+    });
 
 
     // Add keyboard support to the header (focusable element)
@@ -861,18 +874,29 @@ function hasTodosMatchingFilter(categoryId, groupedTodos, filter) {
 
 // Toggle category fold state - Let CSS handle the animation based on the class
 function toggleCategoryFold(categoryId, groupElement) {
+    // Ensure we have a valid group element
+    if (!groupElement) {
+        console.warn('No group element provided for category fold toggle');
+        return;
+    }
+
+    // Log for debugging
+    console.log('Toggling category fold for:', categoryId);
+
     const isFolded = foldedCategories.has(categoryId);
     const foldIcon = groupElement.querySelector('.category-fold-icon');
     const header = groupElement.querySelector('.category-header'); // Get header for ARIA
 
     if (isFolded) {
         // Unfolding
+        console.log('Unfolding category:', categoryId);
         foldedCategories.delete(categoryId);
         groupElement.classList.remove('folded');
         if (foldIcon) foldIcon.textContent = '▼';
         if (header) header.setAttribute('aria-expanded', 'true'); // Update ARIA state
     } else {
         // Folding
+        console.log('Folding category:', categoryId);
         foldedCategories.add(categoryId);
         groupElement.classList.add('folded');
         if (foldIcon) foldIcon.textContent = '►';
