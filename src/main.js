@@ -472,7 +472,7 @@ function createTodoElement(todo) {
 
 // Render todos based on current filter and grouping state
 function renderTodos() {
-  console.log(`Rendering todos. Grouped: ${isGroupedByCategory}, Sort: ${sortBy} ${sortDirection}`);
+  console.log(`Rendering todos. Grouped: ${isGroupedByCategory}, Filter: ${currentFilter}, Sort: ${sortBy} ${sortDirection}`); // Added filter log
 
   // Ensure todoList is available
   if (!todoList) {
@@ -501,6 +501,13 @@ function renderTodos() {
     if (currentFilter === 'completed') return todo.completed;
     return true;
   });
+
+  // *** DEBUG LOGGING START ***
+  if (currentFilter === 'all') {
+    console.log('[DEBUG All Filter] Raw todos:', JSON.stringify(todos.map(t => ({ id: t.id, text: t.text, completed: t.completed }))));
+    console.log('[DEBUG All Filter] Filtered todos before render:', JSON.stringify(filteredTodos.map(t => ({ id: t.id, text: t.text, completed: t.completed }))));
+  }
+  // *** DEBUG LOGGING END ***
 
   // 2. Sort filtered todos - only if we're sorting tasks
   if (sortTarget === 'tasks') {
@@ -606,7 +613,14 @@ function renderTodos() {
   } else {
     // Flat List Rendering
     const flatListUl = document.createElement('ul');
-    filteredTodos.forEach(todo => flatListUl.appendChild(createTodoElement(todo)));
+    filteredTodos.forEach(todo => {
+       // *** DEBUG LOGGING START ***
+       if (currentFilter === 'all') {
+         console.log('[DEBUG All Filter - Flat] Creating element for:', JSON.stringify({ id: todo.id, text: todo.text, completed: todo.completed }));
+       }
+       // *** DEBUG LOGGING END ***
+       flatListUl.appendChild(createTodoElement(todo))
+    });
     addDragDropListenersToList(flatListUl);
     todoList.appendChild(flatListUl);
   }
@@ -713,19 +727,16 @@ function createCategoryHeader(categoryId, categoryName, color, todos, isSubcateg
     actionsSection.appendChild(activateBtn);
     header.appendChild(actionsSection);
 
-    // Add smooth click handling for the entire header
-    header.addEventListener('click', (e) => {
-        // Only toggle if clicking the header itself or title section
-        if (e.target === header ||
-            e.target === titleSection ||
-            e.target === foldIcon ||
-            e.target === title ||
-            e.target === count) {
-            toggleCategoryFold(categoryId, header.closest('.category-group'));
-        }
+    // Add click handling specifically to the title section for folding
+    titleSection.addEventListener('click', (e) => {
+        // Prevent clicks on counts/icons within titleSection from stopping the toggle
+        toggleCategoryFold(categoryId, header.closest('.category-group'));
     });
+    // Make title section itself clickable
+    titleSection.style.cursor = 'pointer';
 
-    // Add keyboard support
+
+    // Add keyboard support to the header (focusable element)
     header.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
@@ -762,7 +773,7 @@ function toggleCategoryTodos(categoryId, setCompleted) {
 
 function renderCategoryGroup(categoryId, groupedTodos, parentElement, level = 0) {
     const hasSubcategories = categories.some(cat => cat.parent_id === parseInt(categoryId));
-    const todos = groupedTodos[categoryId]?.todos || [];
+    const todos = groupedTodos[categoryId]?.todos || []; // These are already filtered
     const category = categories.find(c => c.id.toString() === categoryId);
     const isSubcategory = level > 0;
 
@@ -780,46 +791,52 @@ function renderCategoryGroup(categoryId, groupedTodos, parentElement, level = 0)
 
     groupDiv.appendChild(header);
 
-    if (todos.length > 0) {
-        const todosList = document.createElement('ul');
-        todosList.className = 'category-todos';
+    // Create task list container (even if empty, needed for structure/potential drops)
+    const todosList = document.createElement('ul');
+    todosList.className = 'category-todos';
 
+    if (todos.length > 0) { // 'todos' here are the filtered ones for the category
         todos.forEach(todo => {
+            // *** DEBUG LOGGING START ***
+            if (currentFilter === 'all') {
+              console.log(`[DEBUG All Filter - Grouped ${categoryId}] Creating element for:`, JSON.stringify({ id: todo.id, text: todo.text, completed: todo.completed }));
+            }
+            // *** DEBUG LOGGING END ***
             todosList.appendChild(createTodoElement(todo));
         });
+    }
+    groupDiv.appendChild(todosList); // Append task list
 
-        if (foldedCategories.has(categoryId)) {
-            todosList.style.display = 'none';
-        }
 
-        groupDiv.appendChild(todosList);
+    // Create subcategories container
+    const subcategoriesContainer = document.createElement('div');
+    subcategoriesContainer.className = 'subcategories-container';
+    // Append the subcategories container regardless of whether it has children initially
+    groupDiv.appendChild(subcategoriesContainer); // Append subcategory container
+
+    if (hasSubcategories) {
+        // Populate the container if there are subcategories
+        const subIds = categories // Use a different variable name here
+            .filter(cat => cat.parent_id === parseInt(categoryId))
+            .map(cat => cat.id.toString());
+
+        subIds.forEach(subId => { // Use the new variable name
+            renderCategoryGroup(subId, groupedTodos, subcategoriesContainer, level + 1);
+        });
+    }
+    // Append the subcategories container regardless of whether it has children initially
+    groupDiv.appendChild(subcategoriesContainer);
+
+
+    // Add the 'folded' class to the groupDiv itself if needed initially
+    // This class is the primary controller for hiding nested elements via CSS
+    if (foldedCategories.has(categoryId)) {
+        groupDiv.classList.add('folded');
     }
 
     parentElement.appendChild(groupDiv);
 
-    // Add click handler for folding/unfolding
-    header.querySelector('.category-title-section').addEventListener('click', () => {
-        toggleCategoryFold(categoryId, groupDiv);
-    });
-
-    // Render subcategories if any
-    if (hasSubcategories) {
-        const subcategoriesContainer = document.createElement('div');
-        subcategoriesContainer.className = 'subcategories-container';
-        if (foldedCategories.has(categoryId)) {
-            subcategoriesContainer.style.display = 'none';
-        }
-
-        const subcategoryIds = categories
-            .filter(cat => cat.parent_id === parseInt(categoryId))
-            .map(cat => cat.id.toString());
-
-        subcategoryIds.forEach(subId => {
-            renderCategoryGroup(subId, groupedTodos, subcategoriesContainer, level + 1);
-        });
-
-        groupDiv.appendChild(subcategoriesContainer);
-    }
+    // Click handler was moved to createCategoryHeader
 }
 
 // Check if a category or any of its subcategories has todos matching the filter
@@ -842,47 +859,28 @@ function hasTodosMatchingFilter(categoryId, groupedTodos, filter) {
     return subcategoryIds.some(subId => hasTodosMatchingFilter(subId, groupedTodos, filter));
 }
 
-// Toggle category fold state
+// Toggle category fold state - Let CSS handle the animation based on the class
 function toggleCategoryFold(categoryId, groupElement) {
     const isFolded = foldedCategories.has(categoryId);
     const foldIcon = groupElement.querySelector('.category-fold-icon');
-    const todosList = groupElement.querySelector('.category-todos');
-    const subcategoriesContainer = groupElement.querySelector('.subcategories-container');
+    const header = groupElement.querySelector('.category-header'); // Get header for ARIA
 
     if (isFolded) {
-        foldedCategories.delete(categoryId);
-        groupElement.classList.remove('folded');
-        if (foldIcon) {
-            foldIcon.textContent = '▼';
-        }
+        // Unfolding
         foldedCategories.delete(categoryId);
         groupElement.classList.remove('folded');
         if (foldIcon) foldIcon.textContent = '▼';
-        // Animate opening
-        if (todosList) {
-            todosList.style.maxHeight = todosList.scrollHeight + "px"; // Set max-height for transition
-            todosList.style.opacity = 1;
-        }
-        if (subcategoriesContainer) {
-            subcategoriesContainer.style.maxHeight = subcategoriesContainer.scrollHeight + "px";
-            subcategoriesContainer.style.opacity = 1;
-        }
+        if (header) header.setAttribute('aria-expanded', 'true'); // Update ARIA state
     } else {
+        // Folding
         foldedCategories.add(categoryId);
         groupElement.classList.add('folded');
         if (foldIcon) foldIcon.textContent = '►';
-        // Animate closing
-        if (todosList) {
-            todosList.style.maxHeight = "0";
-            todosList.style.opacity = 0;
-        }
-        if (subcategoriesContainer) {
-            subcategoriesContainer.style.maxHeight = "0";
-            subcategoriesContainer.style.opacity = 0;
-        }
+        if (header) header.setAttribute('aria-expanded', 'false'); // Update ARIA state
     }
 
     saveFoldedState();
+    // No direct style manipulation here - CSS handles transitions based on .folded class
 }
 
 

@@ -211,7 +211,7 @@ h1 {
   align-items: center;
   gap: 8px;
   flex: 1;
-  pointer-events: none; /* Prevent click issues with child elements */
+  /* Removed pointer-events: none; to allow click */
 }
 
 .category-actions {
@@ -623,11 +623,19 @@ h1 {
   transition: max-height 0.3s ease-out, opacity 0.3s ease-out; /* Add opacity transition */
   overflow: hidden;
   opacity: 1; /* Start visible */
+  max-height: 1000px; /* Set a large max-height for unfolded state */
+  /* Ensure transition applies */
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
 }
 
-.category-group.folded .subcategories-container {
+/* Styles for folded state - applied when .category-group has .folded class */
+.category-group.folded .subcategories-container,
+.category-group.folded .category-todos {
   max-height: 0;
-  opacity: 0; /* Fade out when folded */
+  opacity: 0;
+  /* overflow: hidden; is already on the elements */
+  /* Add pointer-events none to prevent interaction when hidden */
+  pointer-events: none;
 }
 
 .toggle-icon {
@@ -651,6 +659,18 @@ h1 {
   overflow-y: auto; /* Allow scrolling if needed */
   transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
   opacity: 1;
+}
+
+/* Style for the list of todos within a category */
+.category-todos {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  overflow: hidden; /* Important for max-height transition */
+  /* Ensure transition applies */
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+  opacity: 1; /* Start visible */
+  max-height: 1000px; /* Set a large max-height for unfolded state */
 }
 
 /* Style for category counts (tasks and subcategories) */
@@ -690,19 +710,8 @@ h1 {
 }
 */
 
-.category-group.folded .category-group-list {
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  /* Remove padding/border when folded to prevent visual artifacts */
-  padding-top: 0;
-  padding-bottom: 0;
-  border-top-width: 0;
-  border-bottom-width: 0;
-}
-
 /* Grouped items might need slightly less padding */
-.category-group-list .todo-item {
+.category-group-list .todo-item { /* Keep this rule for padding */
     padding: 12px 15px;
 }
 
@@ -1591,3 +1600,22 @@ ul.drag-over-active {
     margin-bottom: 0;
   }
 }
+
+</file_content>
+
+Now that you have the latest state of the file, try the operation again with fewer/more precise SEARCH blocks.
+(If you run into this error 3 times in a row, you may use the write_to_file tool as a fallback. Keep in mind, the write_to_file fallback is far from ideal, as this means you'll be re-writing the entire contents of the file just to make a few edits, which takes time and money. So let's bias towards using replace_in_file as effectively as possible)
+</error><environment_details>
+# VSCode Visible Files
+src/styles.css
+
+# VSCode Open Tabs
+src/main.js
+src/styles.css
+
+# Current Time
+4/7/2025, 10:48:59 AM (Africa/Tunis, UTC+1:00)
+
+# Current Mode
+ACT MODE
+</environment_details>
