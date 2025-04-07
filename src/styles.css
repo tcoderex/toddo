@@ -1600,22 +1600,3 @@ ul.drag-over-active {
     margin-bottom: 0;
   }
 }
-
-</file_content>
-
-Now that you have the latest state of the file, try the operation again with fewer/more precise SEARCH blocks.
-(If you run into this error 3 times in a row, you may use the write_to_file tool as a fallback. Keep in mind, the write_to_file fallback is far from ideal, as this means you'll be re-writing the entire contents of the file just to make a few edits, which takes time and money. So let's bias towards using replace_in_file as effectively as possible)
-</error><environment_details>
-# VSCode Visible Files
-src/styles.css
-
-# VSCode Open Tabs
-src/main.js
-src/styles.css
-
-# Current Time
-4/7/2025, 10:48:59 AM (Africa/Tunis, UTC+1:00)
-
-# Current Mode
-ACT MODE
-</environment_details>
