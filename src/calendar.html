@@ -6,116 +6,235 @@
     <title>Task Calendar</title>
     <link rel="stylesheet" href="styles.css" />
     <style>
-        /* Basic calendar styling */
+        :root {
+            --calendar-bg: #f9f9f9;
+            --column-bg: #ffffff;
+            --column-border: #e0e0e0;
+            --header-bg: #f1f1f1;
+            --task-bg: #e7f3ff;
+            --task-border: #cbe1f7;
+            --task-hover-bg: #d0e7ff;
+            --unassigned-bg: #f5f5f5;
+            --drop-target-bg: #e8f0fe;
+            --drop-target-border: #a0c3ff;
+            --text-color: #333;
+            --header-text-color: #555;
+        }
+
         body {
-            font-family: 'Arial', sans-serif;
-            padding: 20px;
-            background-color: #f9f9f9;
-        }
-        h1 {
-            text-align: center;
-            color: #333;
-        }
-        .calendar-container {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr); /* 7 days a week */
-            gap: 10px;
-            margin-top: 20px;
-        }
-        .day-column {
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            padding: 10px;
-            min-height: 200px; /* Ensure columns have some height */
-        }
-        .day-header {
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 10px;
-            padding-bottom: 5px;
-            border-bottom: 1px solid #eee;
-        }
-        .task-list {
-            list-style: none;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
             padding: 0;
-            min-height: 150px; /* Area for tasks */
+            background-color: var(--calendar-bg);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            height: 100vh; /* Use full viewport height */
+            overflow: hidden; /* Prevent body scroll, allow sections to scroll */
         }
-        .task-item {
-            background-color: #e7f3ff;
-            border: 1px solid #cbe1f7;
-            border-radius: 3px;
-            padding: 5px 8px;
-            margin-bottom: 5px;
-            font-size: 14px;
-            cursor: grab; /* Indicate draggable */
+
+        .calendar-header {
+            padding: 15px 20px;
+            background-color: var(--header-bg);
+            border-bottom: 1px solid var(--column-border);
+            text-align: center;
+            flex-shrink: 0; /* Prevent header from shrinking */
         }
-        .task-item:active {
-            cursor: grabbing;
+
+        .calendar-header h1 {
+            margin: 0;
+            font-size: 1.5em;
+            color: var(--header-text-color);
         }
-        .drop-target {
-            border: 2px dashed #ccc;
-            background-color: #f0f0f0;
-        }
-        .task-source-container {
-            margin-top: 30px;
+
+        .calendar-body {
+            display: flex;
+            flex-grow: 1; /* Allow body to fill remaining space */
             padding: 15px;
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            gap: 15px;
+            overflow: hidden; /* Prevent body scroll */
         }
+
+        .task-source-container {
+            flex: 0 0 250px; /* Fixed width for unassigned tasks */
+            background-color: var(--unassigned-bg);
+            border: 1px solid var(--column-border);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* Allow scrolling if many tasks */
+        }
+
         .task-source-container h2 {
-            margin-top: 0;
+            margin: 0 0 15px 0;
             font-size: 1.1em;
-            color: #555;
+            color: var(--header-text-color);
+            text-align: center;
+            border-bottom: 1px solid var(--column-border);
+            padding-bottom: 10px;
         }
+
         #unassigned-tasks {
             list-style: none;
             padding: 0;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
+            margin: 0;
+            flex-grow: 1; /* Allow list to fill space */
+            overflow-y: auto; /* Scroll within the list */
+            min-height: 100px; /* Ensure some space */
         }
+
+        .calendar-grid-container {
+            flex-grow: 1; /* Allow grid to fill remaining space */
+            display: grid;
+            grid-template-columns: repeat(7, 1fr); /* 7 days a week */
+            gap: 10px;
+            overflow-y: auto; /* Allow grid columns to scroll internally */
+            padding-bottom: 10px; /* Space at the bottom */
+        }
+
+        .day-column {
+            background-color: var(--column-bg);
+            border: 1px solid var(--column-border);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            min-height: 300px; /* Ensure columns have decent height */
+            overflow: hidden; /* Prevent column overflow */
+        }
+
+        .day-header {
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+            color: var(--header-text-color);
+            flex-shrink: 0; /* Prevent header shrinking */
+        }
+
+        .task-list {
+            list-style: none;
+            padding: 5px; /* Padding inside the list */
+            margin: 0 -5px; /* Counteract padding for scrollbar */
+            min-height: 150px; /* Minimum area for tasks */
+            flex-grow: 1; /* Allow list to fill column space */
+            overflow-y: auto; /* Allow scrolling within each day */
+            border-radius: 4px; /* Slight rounding for drop target */
+            transition: background-color 0.2s ease; /* Smooth transition for drop target */
+        }
+
+        .task-item {
+            background-color: var(--task-bg);
+            border: 1px solid var(--task-border);
+            border-radius: 4px;
+            padding: 6px 10px;
+            margin-bottom: 6px;
+            font-size: 0.9em;
+            cursor: grab;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+            word-wrap: break-word; /* Prevent long text overflow */
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .task-item:hover {
+            background-color: var(--task-hover-bg);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .task-item:active {
+            cursor: grabbing;
+            opacity: 0.7;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+        }
+
+        /* Drag feedback */
+        .task-item.dragging { /* Style for the item being dragged */
+            opacity: 0.5;
+            border-style: dashed;
+        }
+
+        /* Drop target styling */
+        .task-list.drop-target {
+            background-color: var(--drop-target-bg);
+            border: 1px dashed var(--drop-target-border);
+            outline: 2px dashed var(--drop-target-border);
+            outline-offset: -3px;
+        }
+
+        /* Scrollbar styling (optional, WebKit specific) */
+        .task-list::-webkit-scrollbar,
+        .task-source-container::-webkit-scrollbar,
+        .calendar-grid-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .task-list::-webkit-scrollbar-track,
+        .task-source-container::-webkit-scrollbar-track,
+        .calendar-grid-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .task-list::-webkit-scrollbar-thumb,
+        .task-source-container::-webkit-scrollbar-thumb,
+        .calendar-grid-container::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+
+        .task-list::-webkit-scrollbar-thumb:hover,
+        .task-source-container::-webkit-scrollbar-thumb:hover,
+        .calendar-grid-container::-webkit-scrollbar-thumb:hover {
+            background: #aaa;
+        }
+
     </style>
 </head>
 <body>
-    <h1>Weekly Task Calendar</h1>
-
-    <div class="task-source-container">
-        <h2>Unassigned Tasks</h2>
-        <ul id="unassigned-tasks">
-            <!-- Unassigned tasks will be loaded here -->
-        </ul>
+    <div class="calendar-header">
+        <h1>Weekly Task Calendar</h1>
+        <!-- Add navigation controls here if needed later -->
     </div>
 
-    <div class="calendar-container">
-        <div class="day-column" data-day="Monday">
-            <div class="day-header">Monday</div>
-            <ul class="task-list" id="monday-tasks"></ul>
+    <div class="calendar-body">
+        <div class="task-source-container">
+            <h2>Unassigned Tasks</h2>
+            <ul id="unassigned-tasks" class="task-list">
+                <!-- Unassigned tasks will be loaded here -->
+            </ul>
         </div>
-        <div class="day-column" data-day="Tuesday">
-            <div class="day-header">Tuesday</div>
-            <ul class="task-list" id="tuesday-tasks"></ul>
-        </div>
-        <div class="day-column" data-day="Wednesday">
-            <div class="day-header">Wednesday</div>
-            <ul class="task-list" id="wednesday-tasks"></ul>
-        </div>
-        <div class="day-column" data-day="Thursday">
-            <div class="day-header">Thursday</div>
-            <ul class="task-list" id="thursday-tasks"></ul>
-        </div>
-        <div class="day-column" data-day="Friday">
-            <div class="day-header">Friday</div>
-            <ul class="task-list" id="friday-tasks"></ul>
-        </div>
-        <div class="day-column" data-day="Saturday">
-            <div class="day-header">Saturday</div>
-            <ul class="task-list" id="saturday-tasks"></ul>
-        </div>
-        <div class="day-column" data-day="Sunday">
-            <div class="day-header">Sunday</div>
-            <ul class="task-list" id="sunday-tasks"></ul>
+
+        <div class="calendar-grid-container">
+            <div class="day-column" data-day="Monday">
+                <div class="day-header">Monday</div>
+                <ul class="task-list" id="monday-tasks"></ul>
+            </div>
+            <div class="day-column" data-day="Tuesday">
+                <div class="day-header">Tuesday</div>
+                <ul class="task-list" id="tuesday-tasks"></ul>
+            </div>
+            <div class="day-column" data-day="Wednesday">
+                <div class="day-header">Wednesday</div>
+                <ul class="task-list" id="wednesday-tasks"></ul>
+            </div>
+            <div class="day-column" data-day="Thursday">
+                <div class="day-header">Thursday</div>
+                <ul class="task-list" id="thursday-tasks"></ul>
+            </div>
+            <div class="day-column" data-day="Friday">
+                <div class="day-header">Friday</div>
+                <ul class="task-list" id="friday-tasks"></ul>
+            </div>
+            <div class="day-column" data-day="Saturday">
+                <div class="day-header">Saturday</div>
+                <ul class="task-list" id="saturday-tasks"></ul>
+            </div>
+            <div class="day-column" data-day="Sunday">
+                <div class="day-header">Sunday</div>
+                <ul class="task-list" id="sunday-tasks"></ul>
+            </div>
         </div>
     </div>
 

@@ -1,5 +1,40 @@
-import { WebviewWindow } from '@tauri-apps/api/window';
-import { emit, listen } from '@tauri-apps/api/event';
+// Check if we're running in a Tauri environment
+const isTauri = window.__TAURI__ !== undefined;
+
+// Import Tauri APIs if available
+let invoke;
+let emit;
+let listen;
+let WebviewWindow; // Keep this if needed for window interactions
+
+if (isTauri) {
+  try {
+    // Dynamically import necessary Tauri modules
+    const tauriCore = window.__TAURI__.core;
+    const tauriEvent = window.__TAURI__.event;
+    const tauriWindow = window.__TAURI__.window;
+
+    invoke = tauriCore.invoke;
+    emit = tauriEvent.emit;
+    listen = tauriEvent.listen;
+    WebviewWindow = tauriWindow.WebviewWindow; // Assign if needed
+
+    console.log('Calendar: Tauri environment detected. APIs initialized.');
+
+  } catch (e) {
+    console.error('Calendar: Error initializing Tauri APIs:', e);
+    // Fallback or error handling if APIs aren't available as expected
+    isTauri = false; // Assume not Tauri if init fails
+  }
+} else {
+  console.warn('Calendar: Not running in a Tauri environment.');
+  // Provide mock functions for web environment if needed for basic testing
+  invoke = async (cmd, args) => { console.warn(`Mock invoke: ${cmd}`, args); return []; };
+  emit = (evt, payload) => console.warn(`Mock emit: ${evt}`, payload);
+  listen = (evt, handler) => console.warn(`Mock listen registration: ${evt}`);
+  // WebviewWindow would typically be undefined here
+}
+
 
 // --- DOM Elements ---
 const unassignedTasksList = document.getElementById('unassigned-tasks');
@@ -53,22 +88,29 @@ function renderTasks() {
 }
 
 /**
- * Loads tasks from localStorage (or potentially requests from main window).
+ * Loads tasks using Tauri invoke.
  */
 async function loadTasks() {
+    console.log('Calendar: Loading tasks via invoke...');
     try {
-        // For now, assume tasks are in localStorage, similar to main.js
-        // Filter out deleted tasks and potentially completed ones if desired
-        const allTasks = JSON.parse(localStorage.getItem('todos') || '[]');
-        tasks = allTasks.filter(task => !task.deleted); // Only show non-deleted tasks
-        console.log('Loaded tasks for calendar:', tasks);
+        // Use invoke to get the canonical list of todos from the backend
+        const allTodos = await invoke('load_todos');
+        // Load all tasks and ensure they have a calendarDay property (even if null)
+        tasks = allTodos.map(task => ({
+            ...task,
+            calendarDay: task.calendarDay || null // Ensure property exists
+        }));
+        console.log('Calendar: Loaded all tasks:', tasks);
         renderTasks();
     } catch (error) {
-        console.error("Error loading tasks for calendar:", error);
-        // Handle error, maybe display a message
+        console.error("Calendar: Error loading tasks via invoke:", error);
+        tasks = []; // Reset tasks on error
+        renderTasks(); // Render empty state
+        // Optionally display an error message to the user
+        // alert("Failed to load tasks for the calendar.");
     }
 
-    // Example: Request tasks from main window if needed
+    // Example: Request tasks from main window if needed (keep for reference)
     // await emit('request-tasks-for-calendar');
     // await listen('tasks-for-calendar', (event) => {
     //     tasks = event.payload;
@@ -77,24 +119,42 @@ async function loadTasks() {
 }
 
 /**
- * Saves the updated task assignments back to storage.
+ * Saves the updated task assignments back to the backend via invoke.
  */
-function saveTaskAssignments() {
+async function saveTaskAssignments() {
+    console.log('Calendar: Saving task assignments via invoke...');
     try {
-        // Update the main tasks array in localStorage
-        const allTasks = JSON.parse(localStorage.getItem('todos') || '[]');
-        const updatedTasks = allTasks.map(existingTask => {
-            const updatedTask = tasks.find(t => t.id === existingTask.id);
-            return updatedTask ? updatedTask : existingTask; // Use updated task if found
-        });
-        localStorage.setItem('todos', JSON.stringify(updatedTasks));
-        console.log('Saved task assignments:', tasks);
+        // 1. Get the full, current list of todos from the backend
+        const allCurrentTodos = await invoke('load_todos');
 
-        // Optionally, notify the main window that assignments changed
-        emit('calendar-assignments-updated', { updatedTasks: tasks });
+        // 2. Create a map of the calendar tasks for quick lookup
+        const calendarTaskMap = new Map(tasks.map(task => [task.id, task]));
+
+        // 3. Merge the calendarDay updates into the full list
+        const todosToSave = allCurrentTodos.map(existingTodo => {
+            const calendarVersion = calendarTaskMap.get(existingTodo.id);
+            if (calendarVersion) {
+                // If the task exists in the calendar view, update its calendarDay
+                return { ...existingTodo, calendarDay: calendarVersion.calendarDay };
+            }
+            // Otherwise, keep the existing todo as is
+            return existingTodo;
+        });
+
+        // 4. Save the entire updated list back to the backend
+        await invoke('save_todos', { todos: todosToSave });
+        console.log('Calendar: Successfully saved updated task assignments.');
+
+        // 5. Notify the main window that assignments changed
+        //    We send the *filtered* list currently shown in the calendar
+        //    so the main window knows which tasks were potentially affected.
+        await emit('calendar-assignments-updated', { updatedTasks: tasks });
+        console.log('Calendar: Emitted calendar-assignments-updated event.');
 
     } catch (error) {
-        console.error("Error saving task assignments:", error);
+        console.error("Calendar: Error saving task assignments via invoke:", error);
+        // Optionally display an error message
+        // alert("Failed to save calendar assignments.");
     }
 }
 
@@ -154,25 +214,33 @@ function handleDrop(e) {
     e.stopPropagation(); // Prevent event bubbling
 
     const targetList = e.target.closest('.task-list');
-    const taskId = e.dataTransfer.getData('text/plain');
-    const taskElement = document.querySelector(`.task-item[data-task-id="${taskId}"]`); // Find the original element
+    const taskId = e.dataTransfer.getData('text/plain'); // Get ID from data transfer
 
-    console.log('Drop on:', targetList?.id, 'Task ID:', taskId);
+    // Ensure taskId is treated consistently (e.g., as a number if IDs are numbers)
+    // Note: Task IDs from Date.now() are numbers, but dataset/dataTransfer might make them strings.
+    const taskIdValue = parseInt(taskId, 10); // Convert to number for comparison/lookup
+    const taskElement = document.querySelector(`.task-item[data-task-id="${taskId}"]`); // Find the element being dragged
 
+    console.log('Drop on:', targetList?.id, 'Task ID:', taskIdValue);
 
     if (targetList && taskElement && targetList !== taskElement.parentNode) {
         targetList.classList.remove('drop-target');
-        targetList.appendChild(taskElement); // Move the element
+        targetList.appendChild(taskElement); // Move the element visually
 
-        // Update task data
-        const task = tasks.find(t => t.id === taskId);
-        if (task) {
+        // Update task data in the local 'tasks' state array
+        const taskIndex = tasks.findIndex(t => t.id === taskIdValue);
+        if (taskIndex > -1) {
             const dayColumn = targetList.closest('.day-column');
-            task.calendarDay = dayColumn ? dayColumn.dataset.day : null; // Assign day or null if unassigned
-            console.log(`Task ${taskId} moved to ${task.calendarDay || 'Unassigned'}`);
-            saveTaskAssignments(); // Save changes
+            const newDay = dayColumn ? dayColumn.dataset.day : null; // Assign day or null if unassigned
+
+            tasks[taskIndex].calendarDay = newDay; // Update the state
+
+            console.log(`Task ${taskIdValue} moved to ${newDay || 'Unassigned'}`);
+            saveTaskAssignments(); // Save the entire updated state to backend
         } else {
-            console.error("Dropped task not found in state:", taskId);
+            console.error("Dropped task not found in state:", taskIdValue);
+            // Optionally reload tasks to resync if state is inconsistent
+            // loadTasks();
         }
     } else if (targetList) {
          targetList.classList.remove('drop-target'); // Remove styling even if drop is on same list
