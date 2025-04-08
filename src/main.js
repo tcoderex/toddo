@@ -2066,45 +2066,46 @@ function setupEventListeners() {
 
 // Function to open the calendar window
 async function openCalendarWindow() {
-    if (!isTauri || !WebviewWindow) {
-        console.warn('Cannot open calendar window: Not in Tauri environment or WebviewWindow API not available.');
-        alert('Calendar feature requires the desktop application environment.');
-        return;
-    }
+    // Use Tauri API if available
+    if (isTauri && WebviewWindow) {
+        try {
+            console.log('Attempting to open calendar window via Tauri...');
+            const calendarWindow = WebviewWindow.getByLabel('calendar');
 
-    try {
-        console.log('Attempting to open calendar window...');
-        const calendarWindow = WebviewWindow.getByLabel('calendar');
+            if (calendarWindow) {
+                console.log('Calendar window already exists, focusing...');
+                await calendarWindow.setFocus();
+            } else {
+                console.log('Creating new calendar window...');
+                const newWindow = new WebviewWindow('calendar', {
+                    url: 'calendar.html',
+                    title: 'Task Calendar',
+                    width: 800,
+                    height: 600,
+                    resizable: true,
+                    decorations: true, // Show window decorations (close, minimize, maximize)
+                    // Add other options as needed
+                });
 
-        if (calendarWindow) {
-            console.log('Calendar window already exists, focusing...');
-            await calendarWindow.setFocus();
-        } else {
-            console.log('Creating new calendar window...');
-            const newWindow = new WebviewWindow('calendar', {
-                url: 'calendar.html',
-                title: 'Task Calendar',
-                width: 800,
-                height: 600,
-                resizable: true,
-                decorations: true, // Show window decorations (close, minimize, maximize)
-                // Add other options as needed
-            });
+                newWindow.once('tauri://created', () => {
+                    console.log('Calendar window created successfully.');
+                    // Optionally emit an event to the new window once created
+                    // window.__TAURI__.event.emit('main-window-ready-for-calendar');
+                });
 
-            newWindow.once('tauri://created', () => {
-                console.log('Calendar window created successfully.');
-                // Optionally emit an event to the new window once created
-                // window.__TAURI__.event.emit('main-window-ready-for-calendar');
-            });
-
-            newWindow.once('tauri://error', (e) => {
-                console.error('Failed to create calendar window:', e);
-                alert(`Could not open the calendar window. Error: ${e.payload}`);
-            });
+                newWindow.once('tauri://error', (e) => {
+                    console.error('Failed to create calendar window:', e);
+                    alert(`Could not open the calendar window. Error: ${e.payload}`);
+                });
+            }
+        } catch (error) {
+            console.error('Error opening calendar window via Tauri:', error);
+            alert(`Could not open the calendar window. Error: ${error.message || error}`);
         }
-    } catch (error) {
-        console.error('Error opening calendar window:', error);
-        alert(`Could not open the calendar window. Error: ${error.message || error}`);
+    } else {
+        // Fallback for standard web environment
+        console.log('Opening calendar.html in a new browser tab/window.');
+        window.open('calendar.html', '_blank');
     }
 }
 
