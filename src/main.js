@@ -3,7 +3,7 @@ const isTauri = window.__TAURI__ !== undefined;
 
 // Import Tauri APIs if available
 let invoke;
-// Removed: let WebviewWindowConstructor;
+let WebviewWindow; // Import WebviewWindow
 let tauriVersion = 'unknown';
 
 if (isTauri) {
@@ -25,15 +25,47 @@ if (isTauri) {
       });
     }
 
-    // Removed: WebviewWindow constructor logic
+    // Import WebviewWindow if available
+    if (window.__TAURI__?.window?.WebviewWindow) {
+        WebviewWindow = window.__TAURI__.window.WebviewWindow;
+        console.log('Using window.__TAURI__.window.WebviewWindow');
+    } else {
+        // Fallback or attempt modern import (might require build setup)
+        try {
+             // Dynamically import if needed, or assume it's globally available via tauri.conf.json
+             // For simplicity, let's assume it might be available globally or handle error
+             if (window.Tauri?.window?.WebviewWindow) {
+                 WebviewWindow = window.Tauri.window.WebviewWindow;
+                 console.log('Using window.Tauri.window.WebviewWindow');
+             } else {
+                 console.warn('WebviewWindow API not found directly. Ensure @tauri-apps/api is installed and configured if using modern imports.');
+                 // If using module imports: import { WebviewWindow } from '@tauri-apps/api/window';
+             }
+        } catch (importError) {
+             console.error('Error trying to access WebviewWindow:', importError);
+        }
+    }
+
 
     // Set up event listener for todos-updated event from trash window
     if (window.__TAURI__.event && typeof window.__TAURI__.event.listen === 'function') {
       window.__TAURI__.event.listen('todos-updated', () => {
-        console.log('Received todos-updated event from Tauri');
+        console.log('Received todos-updated event from Tauri (trash)');
         loadTodos();
       });
-      console.log('Registered Tauri event listener for todos-updated');
+      console.log('Registered Tauri event listener for todos-updated (trash)');
+
+      // Listen for updates from the calendar window
+      window.__TAURI__.event.listen('calendar-assignments-updated', (event) => {
+        console.log('Received calendar-assignments-updated event from Tauri');
+        // Optionally reload or merge task data if needed, though calendar.js saves directly
+        // For now, just log it. If main window needs to reflect calendar changes immediately,
+        // you might need to update the `todos` array here based on event.payload.
+        console.log('Calendar assignments updated:', event.payload);
+        // Potentially call loadTodos() if you want the main list to refresh
+        // loadTodos();
+      });
+       console.log('Registered Tauri event listener for calendar-assignments-updated');
     }
   } catch (e) {
     console.error('Error initializing Tauri APIs:', e);
@@ -80,6 +112,7 @@ let clearCompletedBtn;
 let dueDateInput;
 let categorySelect;
 let viewTrashBtn; // Added for trash window logic
+let viewCalendarBtn; // Added for calendar window logic
 
 // Add this after your existing variable declarations
 let floatingControls;
@@ -1551,6 +1584,7 @@ async function initializeApp() {
       sortByButtons = document.querySelectorAll('.sort-by-btn');
       sortDirectionButtons = document.querySelectorAll('.sort-direction-btn');
       viewTrashBtn = document.querySelector('#view-trash-btn'); // Get trash button
+      viewCalendarBtn = document.querySelector('#view-calendar-btn'); // Get calendar button
 
       // Check if critical elements are missing
       if (!todoList || !todoInput) {
@@ -2021,7 +2055,59 @@ function setupEventListeners() {
 
   // Trash button listener - Opens new window via backend command
   viewTrashBtn.addEventListener('click', openTrashWindow);
+
+  // Calendar button listener
+  if (viewCalendarBtn) {
+    viewCalendarBtn.addEventListener('click', openCalendarWindow);
+  } else {
+    console.error("Calendar button not found during event listener setup.");
+  }
 }
+
+// Function to open the calendar window
+async function openCalendarWindow() {
+    if (!isTauri || !WebviewWindow) {
+        console.warn('Cannot open calendar window: Not in Tauri environment or WebviewWindow API not available.');
+        alert('Calendar feature requires the desktop application environment.');
+        return;
+    }
+
+    try {
+        console.log('Attempting to open calendar window...');
+        const calendarWindow = WebviewWindow.getByLabel('calendar');
+
+        if (calendarWindow) {
+            console.log('Calendar window already exists, focusing...');
+            await calendarWindow.setFocus();
+        } else {
+            console.log('Creating new calendar window...');
+            const newWindow = new WebviewWindow('calendar', {
+                url: 'calendar.html',
+                title: 'Task Calendar',
+                width: 800,
+                height: 600,
+                resizable: true,
+                decorations: true, // Show window decorations (close, minimize, maximize)
+                // Add other options as needed
+            });
+
+            newWindow.once('tauri://created', () => {
+                console.log('Calendar window created successfully.');
+                // Optionally emit an event to the new window once created
+                // window.__TAURI__.event.emit('main-window-ready-for-calendar');
+            });
+
+            newWindow.once('tauri://error', (e) => {
+                console.error('Failed to create calendar window:', e);
+                alert(`Could not open the calendar window. Error: ${e.payload}`);
+            });
+        }
+    } catch (error) {
+        console.error('Error opening calendar window:', error);
+        alert(`Could not open the calendar window. Error: ${error.message || error}`);
+    }
+}
+
 
 function createFloatingControls() {
     // Create floating controls container

@@ -23,6 +23,19 @@
         "minHeight": 300,
         "theme": "Light",
         "resizable": true
+      },
+      {
+        "label": "calendar",
+        "title": "Task Calendar",
+        "url": "calendar.html",
+        "width": 800,
+        "height": 600,
+        "visible": true,
+        "center": true,
+        "decorations": true,
+        "resizable": true,
+        "skipTaskbar": false,
+        "theme": "Light"
       }
     ],
     "security": {

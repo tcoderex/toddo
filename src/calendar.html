@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Task Calendar</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+        /* Basic calendar styling */
+        body {
+            font-family: 'Arial', sans-serif;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .calendar-container {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr); /* 7 days a week */
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .day-column {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            min-height: 200px; /* Ensure columns have some height */
+        }
+        .day-header {
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        .task-list {
+            list-style: none;
+            padding: 0;
+            min-height: 150px; /* Area for tasks */
+        }
+        .task-item {
+            background-color: #e7f3ff;
+            border: 1px solid #cbe1f7;
+            border-radius: 3px;
+            padding: 5px 8px;
+            margin-bottom: 5px;
+            font-size: 14px;
+            cursor: grab; /* Indicate draggable */
+        }
+        .task-item:active {
+            cursor: grabbing;
+        }
+        .drop-target {
+            border: 2px dashed #ccc;
+            background-color: #f0f0f0;
+        }
+        .task-source-container {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .task-source-container h2 {
+            margin-top: 0;
+            font-size: 1.1em;
+            color: #555;
+        }
+        #unassigned-tasks {
+            list-style: none;
+            padding: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Weekly Task Calendar</h1>
+
+    <div class="task-source-container">
+        <h2>Unassigned Tasks</h2>
+        <ul id="unassigned-tasks">
+            <!-- Unassigned tasks will be loaded here -->
+        </ul>
+    </div>
+
+    <div class="calendar-container">
+        <div class="day-column" data-day="Monday">
+            <div class="day-header">Monday</div>
+            <ul class="task-list" id="monday-tasks"></ul>
+        </div>
+        <div class="day-column" data-day="Tuesday">
+            <div class="day-header">Tuesday</div>
+            <ul class="task-list" id="tuesday-tasks"></ul>
+        </div>
+        <div class="day-column" data-day="Wednesday">
+            <div class="day-header">Wednesday</div>
+            <ul class="task-list" id="wednesday-tasks"></ul>
+        </div>
+        <div class="day-column" data-day="Thursday">
+            <div class="day-header">Thursday</div>
+            <ul class="task-list" id="thursday-tasks"></ul>
+        </div>
+        <div class="day-column" data-day="Friday">
+            <div class="day-header">Friday</div>
+            <ul class="task-list" id="friday-tasks"></ul>
+        </div>
+        <div class="day-column" data-day="Saturday">
+            <div class="day-header">Saturday</div>
+            <ul class="task-list" id="saturday-tasks"></ul>
+        </div>
+        <div class="day-column" data-day="Sunday">
+            <div class="day-header">Sunday</div>
+            <ul class="task-list" id="sunday-tasks"></ul>
+        </div>
+    </div>
+
+    <script type="module" src="calendar.js" defer></script>
+</body>
+</html>
