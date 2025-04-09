@@ -149,6 +149,17 @@
             box-shadow: 0 3px 6px rgba(0,0,0,0.15);
         }
 
+        .task-item.completed {
+            text-decoration: line-through;
+            color: #888;
+            background-color: #f0f0f0; /* Different background for completed */
+            border-color: #ddd;
+        }
+
+        .task-item.completed:hover {
+             background-color: #e8e8e8;
+        }
+
         /* Drag feedback */
         .task-item.dragging { /* Style for the item being dragged */
             opacity: 0.5;
@@ -188,6 +199,51 @@
         .task-source-container::-webkit-scrollbar-thumb:hover,
         .calendar-grid-container::-webkit-scrollbar-thumb:hover {
             background: #aaa;
+        }
+
+        /* Styling for category groups in unassigned list */
+        .category-group-unassigned {
+            margin-bottom: 10px;
+            padding-left: 5px; /* Base padding for groups */
+        }
+
+        .category-header-unassigned {
+            font-weight: 600;
+            font-size: 0.95em;
+            padding: 4px 0 4px 5px; /* Adjusted padding */
+            margin-bottom: 5px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            color: var(--header-text-color);
+        }
+
+        .category-color-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        .category-title-unassigned {
+            flex-grow: 1;
+            margin-right: 5px;
+        }
+
+        .category-count-unassigned {
+            font-size: 0.9em;
+            color: #777;
+        }
+
+        .category-task-list {
+            padding-left: 15px; /* Indent tasks under category header */
+            border-left: 2px solid #eee; /* Visual indicator for task list */
+            margin-left: 5px; /* Align with header indentation */
+        }
+
+        .subcategories-container-unassigned {
+            /* No extra styling needed currently, structure provides hierarchy */
         }
 
     </style>
