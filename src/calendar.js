@@ -1,3 +1,35 @@
+/**
+ * Inject demo data into localStorage if none exists.
+ * This ensures the calendar displays tasks and categories for first-time users.
+ */
+(function injectDemoDataIfNeeded() {
+  try {
+    if (!localStorage.getItem('todos') || !localStorage.getItem('categories')) {
+      // Demo categories
+      const demoCategories = [
+        { id: 1, name: "Work", color: "#1976d2", parent_id: null },
+        { id: 2, name: "Personal", color: "#43a047", parent_id: null },
+        { id: 3, name: "Errands", color: "#fbc02d", parent_id: 2 }, // Subcategory of Personal
+      ];
+      // Demo tasks
+      const demoTasks = [
+        { id: 1001, text: "Finish project report", completed: false, category: demoCategories[0], calendarDay: "Monday" },
+        { id: 1002, text: "Team meeting", completed: false, category: demoCategories[0], calendarDay: "Tuesday" },
+        { id: 1003, text: "Buy groceries", completed: false, category: demoCategories[2], calendarDay: null },
+        { id: 1004, text: "Call plumber", completed: false, category: demoCategories[1], calendarDay: null },
+        { id: 1005, text: "Read a book", completed: false, category: demoCategories[1], calendarDay: "Sunday" },
+        { id: 1006, text: "Gym session", completed: false, category: demoCategories[1], calendarDay: "Friday" },
+        { id: 1007, text: "Dentist appointment", completed: false, category: null, calendarDay: null },
+      ];
+      localStorage.setItem('categories', JSON.stringify(demoCategories));
+      localStorage.setItem('todos', JSON.stringify(demoTasks));
+      console.log('Demo data injected into localStorage for calendar.');
+    }
+  } catch (e) {
+    console.error('Failed to inject demo data:', e);
+  }
+})();
+
 // Check if we're running in a Tauri environment
 const isTauri = window.__TAURI__ !== undefined;
 
